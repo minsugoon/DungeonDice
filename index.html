@@ -121,9 +121,22 @@
       min-height: 590px;
     }
 
-    /* 요청: 입력 영역 높이 564px로 변경 */
+    /* 입력 영역: 높이 + 선택 방지 */
     #typingArea {
       min-height: 564px;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    /* 혹시 선택이 되더라도 보이지 않도록 selection 색상 투명 처리 */
+    #typingArea::selection {
+      background: transparent;
+      color: transparent;
+    }
+    #typingArea::-moz-selection {
+      background: transparent;
+      color: transparent;
     }
 
     .hint {
@@ -870,6 +883,18 @@
       updateOverlay(e.target.value);
     });
 
+    // 입력 영역: 드래그 선택/전체 선택 방지
+    typingAreaEl.addEventListener("selectstart", (e) => {
+      e.preventDefault();
+    });
+
+    typingAreaEl.addEventListener("keydown", (e) => {
+      // Ctrl+A 또는 Cmd+A 전체 선택 방지
+      if ((e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A")) {
+        e.preventDefault();
+      }
+    });
+
     // 샘플 버튼 클릭 시 예제 문장 교체
     sampleButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -879,6 +904,11 @@
           exampleTextEl.value = text;
         }
       });
+    });
+
+    // 마우스 오른쪽 버튼(컨텍스트 메뉴) 전체 페이지에서 비활성화
+    document.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
     });
 
     // 초기화
