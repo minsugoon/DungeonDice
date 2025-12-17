@@ -13,17 +13,51 @@ body{
   margin:0; font-family:'Pretendard', system-ui, sans-serif;
   background:var(--bg); color:var(--text);
   user-select:none;
+  position: relative; /* 배경 이미지를 위한 기준점 */
+  min-height: 100vh; /* 최소 높이 설정 */
 }
+
+/* [배경 이미지 설정] 경로 수정됨 */
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 이미지 경로 수정: images 폴더 안의 파일 지정 */
+    background-image: url('images/game_background_image.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.3; /* 불투명도 30% */
+    z-index: -1; /* UI 뒤로 배치 */
+    pointer-events: none; /* 마우스 클릭 통과 */
+}
+
 .wrap{
   max-width:1280px; margin:0 auto; padding:10px;
   display:grid; grid-template-rows: auto 1fr; gap:10px; height:100vh;
+  position: relative; 
+  z-index: 1; /* 배경보다 위에 표시 */
 }
 
 /* Header */
 header{
-  background:var(--panel); padding:10px 20px; border-radius:12px;
-  display:flex; justify-content:space-between; align-items:center;
+  background:var(--panel);
+  padding:10px 20px;
+  border-radius:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   border:1px solid rgba(255,255,255,0.1);
+  
+  /* 로고 이미지 추가 */
+  background-image: url('images/game_logo.png');
+  background-repeat: no-repeat;
+  background-position: 20px center; /* 왼쪽 여백 및 중앙 정렬 */
+  background-size: 143px 40px; /* 로고 크기 예시 */
+  padding-left: 170px; /* 로고 공간 확보 */
 }
 .round-tracker{
   font-size:14px; font-weight:bold; color:var(--gold);
@@ -35,7 +69,7 @@ header{
   display:grid; grid-template-columns: 1fr 340px; gap:12px;
   overflow:hidden;
 }
-@media (max-width: 800px){ .game-body{grid-template-columns: 1fr;} }
+@media (max-width: 900px){ .game-body{grid-template-columns: 1fr;} }
 
 /* Board Area */
 .board-panel{
@@ -44,25 +78,37 @@ header{
   border:1px solid rgba(255,255,255,0.05); position:relative; overflow:auto;
 }
 .grid{
-  display:grid; grid-template-columns:repeat(5, 85px); gap:6px;
+  /* 타일 크기 100px에 맞춰 그리드 수정 */
+  display:grid; grid-template-columns:repeat(5, 100px); gap:6px;
   padding:20px;
 }
 .tile{
-  width:85px; height:85px; background:var(--board);
+  /* 타일 크기 100px */
+  width:100px; height:100px; background:var(--board);
   border-radius:8px; border:1px solid rgba(255,255,255,0.1);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   position:relative; cursor:pointer; transition:transform 0.1s;
-  font-size:11px; text-align:center;
+  
+  /* 폰트 크기 확대 */
+  font-size:16px; 
+  text-align:center;
 }
 .tile.start{ border:2px solid var(--green); background:rgba(81,207,102,0.1); }
 .tile.exit{ border:2px solid var(--gold); background:rgba(255,215,0,0.1); }
 .tile.movable{ box-shadow:inset 0 0 0 2px var(--green); background:rgba(81,207,102,0.2); animation:pulse 1.5s infinite;}
-.tile-cat{ font-weight:bold; margin-bottom:4px; pointer-events:none;}
-.tile-sub{ font-size:9px; color:#888; pointer-events:none;}
+
+.tile-cat{ 
+  font-weight:bold; margin-bottom:2px; pointer-events:none; 
+  font-size: 15px;
+}
+.tile-sub{ 
+  font-size:13px; 
+  color:#aaa; pointer-events:none; line-height: 1.2;
+}
 
 /* Meeple Styles */
 .meeple{
-  width:32px; height:32px; /* 이미지 크기 */
+  width:32px; height:32px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -99,6 +145,13 @@ button:disabled{ opacity:0.3; cursor:not-allowed; }
 button.primary{ background:var(--blue); }
 button.action{ background:var(--accent); }
 button.item{ background:var(--gold); color:#000; }
+button.restart{ 
+  background:var(--green); color:#000; 
+  animation: pulse 2s infinite; 
+  padding: 8px 12px; 
+  max-height: 50px;
+  font-size: 13px;
+}
 
 .log-box{
   flex:1; background:rgba(0,0,0,0.3); border-radius:8px; padding:10px;
@@ -113,10 +166,14 @@ button.item{ background:var(--gold); color:#000; }
   display:flex; justify-content:space-between; align-items:center;
   padding:8px; background:rgba(255,255,255,0.03); border-radius:6px; margin-bottom:4px;
 }
-.player-row.active{ border:1px solid var(--text); background:rgba(255,255,255,0.1); }
+.player-row.active{ border:1px solid var(--gold); background:rgba(255,215,0,0.1); }
 .p-badge{ 
   width:24px; height:24px; display:inline-block; margin-right:6px; 
   background-size:contain; background-repeat:no-repeat; vertical-align:middle;
+}
+.win-text {
+  color: var(--gold); font-weight: 900; margin-left: 8px; font-size: 14px;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
 /* Modals */
