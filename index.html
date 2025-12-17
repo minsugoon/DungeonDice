@@ -18,14 +18,11 @@
   </header>
 
   <div class="game-body">
-    <!-- 왼쪽: 게임 보드 -->
     <div class="board-panel">
       <div class="grid" id="board"></div>
     </div>
 
-    <!-- 오른쪽: 컨트롤 패널 -->
     <div class="ctrl-panel">
-      <!-- 정보 카드 -->
       <div class="card">
         <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:bold;">
           <span id="turnIndicator">게임 준비</span>
@@ -44,25 +41,34 @@
         </div>
       </div>
 
-      <!-- 플레이어 현황 -->
       <div class="card">
         <div style="font-size:12px; color:#888; margin-bottom:8px;">플레이어 현황</div>
         <div id="playerList"></div>
       </div>
 
-      <!-- 로그 -->
       <div class="log-box" id="gameLog">
         <div class="log-entry">게임에 오신 것을 환영합니다.</div>
       </div>
       
-      <!-- 하단 다시 시작 버튼 -->
       <button id="btnRestartMain" class="restart" style="margin-top:10px;">다시 시작하기</button>
-    </div>
-  </div>
-</div>
 
-<!-- 모달: 게임 설정 -->
-<div class="modal-overlay" id="setupModal" style="display:flex;">
+      <div class="bgm-panel" style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+        <div style="font-size:12px; color:#888; margin-bottom:6px; display:flex; justify-content:space-between;">
+          <span>배경 음악</span>
+          <span id="volLabel">70%</span>
+        </div>
+        
+        <div class="btn-row" style="margin-bottom:8px;">
+          <button id="btnBgmPlay" style="font-size:12px;">▶ 재생</button>
+          <button id="btnBgmPause" style="font-size:12px;">❚❚ 일시정지</button>
+          <button id="btnBgmStop" style="font-size:12px;">■ 정지</button>
+        </div>
+        
+        <input type="range" id="bgmVolume" min="0" max="1" step="0.1" value="0.7" 
+               style="width:100%; accent-color:var(--gold); cursor:pointer;">
+      </div>
+
+    </div> </div> </div> <div class="modal-overlay" id="setupModal" style="display:flex;">
   <div class="modal">
     <h2 style="color:var(--gold)">게임 설정</h2>
     <div style="display:flex; flex-direction:column; gap:10px; text-align:left; margin-bottom:20px;">
@@ -76,7 +82,6 @@
   </div>
 </div>
 
-<!-- 모달: 카드 획득 -->
 <div class="modal-overlay" id="cardModal">
   <div class="modal">
     <h3 id="cardType" style="margin-top:0">카드 획득</h3>
@@ -86,12 +91,10 @@
     </div>
     <div id="cardResult" style="margin-bottom:15px; font-size:13px; color:#ccc;"></div>
     <div class="btn-row" id="cardActions">
-      <!-- 동적 버튼 생성 -->
-    </div>
+      </div>
   </div>
 </div>
 
-<!-- 모달: 인벤토리 -->
 <div class="modal-overlay" id="inventoryModal">
   <div class="modal">
     <h3>인벤토리</h3>

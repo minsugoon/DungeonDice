@@ -1,12 +1,12 @@
 /**
  * Dungeon Dice Game Logic
- * Ver. Fixed + Custom Exit Rules
+ * Ver. Fixed + Custom Exit Rules + BGM Fixed
  */
 
 // --- Constants & Config ---
 const PLAYER_COLORS = ['Red', 'Blue', 'Yellow', 'Black'];
 const MAX_ROUNDS = 13;
-const BLINDFOLD_REQ = 15; // 두건 해제 조건
+const BLINDFOLD_REQ = 15;
 
 // 타일 정의
 const MAP_TILES = [
@@ -17,9 +17,14 @@ const MAP_TILES = [
   {cat:'sum25', count:1}, {cat:'sum7', count:1}, {cat:'yacht', count:1}
 ];
 
-// [수정 2] EXIT 타일 조건 변경
-// 기존 4 of a Kind 등을 빼고 요청하신 3가지(짝수, 홀수, 합15)와 기존의 일부를 조합
 const EXIT_POOL = ['allEven', 'allOdd', 'sum15Exact', 'fullHouse', 'largeStr', 'yacht'];
+
+// --- BGM Global Variables ---
+// 파일 경로가 정확한지 반드시 확인하세요 (대소문자 구분함)
+const BGM_PLAYLIST = ['music/GameOST_001.mp3', 'music/GameOST_002.mp3'];
+let bgmAudio = new Audio();
+let bgmIndex = 0;
+let bgmPlaying = false;
 
 // 카드 덱 정의
 const DECK_ACTION = [
@@ -118,6 +123,9 @@ function initGame(){
   log(`게임이 시작되었습니다. (두건 해제 조건: 합 ${BLINDFOLD_REQ} 이상)`);
   
   startTurn(0);
+  
+  // BGM 자동 재생 시도
+  playBGM();
 }
 
 function startTurn(pid){
@@ -282,10 +290,7 @@ function handleTileEvent(idx){
     return;
   }
 
-  // 액션/아이템 카드 트리거
   if(['fourKind','fullHouse','smallStr','largeStr','sum25','sum7','sum15Exact','allEven','allOdd'].includes(tile.cat)){
-    // Exit가 아닌 일반 타일로서 이 조건들이 있다면 Action 카드를 뽑게 설정 (확률상 낮지만)
-    // 기존에 없던 cat이므로 Action 카드로 처리
     drawCard('action');
   } else if(tile.cat === 'yacht'){
     drawCard('item');
@@ -471,14 +476,10 @@ function checkMatch(req, dice){
     case 'largeStr': return u.includes('12345')||u.includes('23456');
     case 'sum25': return sum>=25;
     case 'sum7': return sum<=7;
-    // [수정 2-1] 정확한 합 15
     case 'sum15Exact': return sum===15;
-    
     case 'trapLow': return counts[1]||counts[2];
     case 'trapMid': return counts[3]||counts[4];
     case 'trapHigh': return counts[5]||counts[6];
-    
-    // 카드 조건용
     case 'sum15': return sum>=15;
     case 'sum15_18': return sum>=15 && sum<=18;
     case 'sum20': return sum>=20;
@@ -576,27 +577,20 @@ function renderBoard(){
     let mainText = "";
     let subText = ""; 
 
-    // 족보 이름 변환 로직 (표시용)
     let displayName = t.cat;
     if(t.cat==='threeKind') displayName='3 Kind';
     else if(t.cat==='fourKind') displayName='4 Kind';
     else if(t.cat==='fullHouse') displayName='Full House';
-    
-    // [수정 1] 함정 타일 명칭 변경
     else if(t.cat==='trapLow') displayName='주사위[1,2]';
     else if(t.cat==='trapMid') displayName='주사위[3,4]';
     else if(t.cat==='trapHigh') displayName='주사위[5,6]';
-    
     else if(t.cat==='smallStr') displayName='S.Straight';
     else if(t.cat==='largeStr') displayName='L.Straight';
     else if(t.cat==='sum25') displayName='Sum 25↑';
     else if(t.cat==='sum7') displayName='Sum 7↓';
-    
-    // [수정 2-2] 새로운 Exit 조건 표시 이름
     else if(t.cat==='allEven') displayName='All Even';
     else if(t.cat==='allOdd') displayName='All Odd';
     else if(t.cat==='sum15Exact') displayName='Sum = 15';
-    
     else if(t.cat==='yacht') displayName='Yacht';
     else if(t.cat==='chance') displayName='Chance';
     else if(t.cat==='start') displayName='START';
@@ -606,13 +600,10 @@ function renderBoard(){
         subText = displayName; 
     } else {
         mainText = displayName;
-        
         if(['fourKind','fullHouse','smallStr','largeStr','sum25','sum7','sum15Exact','allEven','allOdd'].includes(t.cat)) subText = "Action Card";
         else if(t.cat === 'yacht') subText = "Item Card";
         else if(t.cat === 'chance') subText = "Chance Card";
         else if(t.cat === 'start') subText = `합 ${BLINDFOLD_REQ}↑`;
-        
-        // 함정(주사위) 타일은 subText 없음 (깔끔하게)
     }
 
     el.innerHTML = `<div class="tile-cat">${mainText}</div>`;
@@ -624,19 +615,15 @@ function renderBoard(){
         const color = PLAYER_COLORS[pl.id];
         const status = pl.blind ? 'off' : 'on';
         const imgSrc = `images/Meeple_${color}_${status}.png`;
-        
         m.className = `meeple ${pl.poison?'poison':''}`;
         m.style.backgroundImage = `url('${imgSrc}')`;
-        
         if(pl.id===0) m.style.left='4px';
         if(pl.id===1) m.style.right='4px';
         if(pl.id===2) {m.style.top='4px'; m.style.left='4px';}
         if(pl.id===3) {m.style.top='4px'; m.style.right='4px';}
-        
         el.appendChild(m);
       }
     });
-
     board.appendChild(el);
   });
 }
@@ -654,7 +641,6 @@ function renderDice(){
       if(G.phase !== 'roll') return;
       if(p.blind) return; 
       if(G.rolls >= 3) return;
-
       G.held[i] = !G.held[i];
       d.className = `die ${G.held[i]?'held':''}`;
     };
@@ -668,16 +654,12 @@ function renderPlayers(){
   G.players.forEach(p => {
     const row = document.createElement('div');
     row.className = `player-row ${p.id === G.active ? 'active' : ''}`;
-    
     const color = PLAYER_COLORS[p.id];
     const status = p.blind ? 'off' : 'on';
     const imgSrc = `images/Meeple_${color}_${status}.png`;
-    
     let stateTxt = p.blind ? "두건" : (p.poison ? "중독" : "이동가능");
     if(p.escaped) stateTxt = "탈출";
-    
     let winHtml = (G.winner === p.id) ? '<span class="win-text">WIN</span>' : '';
-
     row.innerHTML = `
       <div style="display:flex; align-items:center; gap:8px;">
         <div class="p-badge" style="background-image:url('${imgSrc}')"></div>
@@ -691,13 +673,11 @@ function renderPlayers(){
 
 function updateUI(){
   const p = G.players[G.active];
-  
   if(G.winner !== null){
     _('statusIndicator').innerText = "게임 종료";
     _('turnIndicator').innerText = "결과 확인";
     _('btnRoll').disabled = true;
     _('btnAction').disabled = true;
-    
     const btnEnd = _('btnEnd');
     btnEnd.innerText = "다시 시작하기";
     btnEnd.disabled = false;
@@ -707,22 +687,17 @@ function updateUI(){
     };
     return;
   }
-
   const btnEnd = _('btnEnd');
   if(btnEnd.innerText !== "턴 종료") {
       btnEnd.innerText = "턴 종료";
       btnEnd.className = "";
       btnEnd.onclick = endTurn;
   }
-
   _('statusIndicator').innerText = `${p.name} 턴`;
   _('turnIndicator').innerText = G.phase==='roll' ? `주사위 굴리기 (남은 횟수: ${G.rolls})` : "이동 선택";
-  
   const hasRolled = G.rolls < 3;
   const unlocked = !p.blind;
-
   _('btnRoll').disabled = (G.phase !== 'roll' || G.rolls <= 0);
-  
   if (!unlocked) {
       _('btnAction').disabled = true;
       _('btnEnd').disabled = true;
@@ -730,10 +705,8 @@ function updateUI(){
       _('btnAction').disabled = !(G.phase === 'roll' && hasRolled);
       _('btnEnd').disabled = !( (G.phase === 'roll' && hasRolled) || G.phase === 'move' );
   }
-  
   _('btnAction').onclick = confirmAction;
   _('btnItem').disabled = (p.inv.length === 0);
-  
   let hint = "";
   if(p.blind) hint = `두건을 벗으려면 주사위 합이 ${BLINDFOLD_REQ} 이상이어야 합니다.`;
   else if(p.poison) hint = "중독 상태! 4 Kind가 필요합니다.";
@@ -760,6 +733,52 @@ function toggleRules(){
   `);
 }
 
+// --- BGM Logic (Corrected) ---
+
+function playBGM() {
+  if (bgmAudio.src && bgmAudio.paused && bgmAudio.currentTime > 0) {
+      bgmAudio.play().catch(e => console.log("BGM 재생 실패 (사용자 인터랙션 필요):", e));
+      return;
+  }
+  if (!bgmAudio.src || bgmAudio.src === '') {
+      bgmAudio.src = BGM_PLAYLIST[bgmIndex];
+      bgmAudio.volume = parseFloat(_('bgmVolume').value);
+      // 에러 핸들링: 파일 못 찾을 경우
+      bgmAudio.onerror = () => {
+          console.error(`BGM 파일을 찾을 수 없습니다: ${bgmAudio.src}`);
+          log("⚠️ 배경음악 파일을 찾을 수 없습니다 (music 폴더 확인).");
+      };
+  }
+  
+  bgmAudio.play().catch(e => {
+      console.log("자동 재생 정책에 의해 차단됨 (정상):", e);
+  });
+  bgmPlaying = true;
+  
+  bgmAudio.onended = () => {
+      bgmIndex = (bgmIndex + 1) % BGM_PLAYLIST.length;
+      bgmAudio.src = BGM_PLAYLIST[bgmIndex];
+      bgmAudio.play();
+  };
+}
+
+function pauseBGM() {
+  bgmAudio.pause();
+  bgmPlaying = false;
+}
+
+function stopBGM() {
+  bgmAudio.pause();
+  bgmAudio.currentTime = 0; 
+  bgmPlaying = false;
+}
+
+function setVolume() {
+  const vol = this.value; 
+  bgmAudio.volume = vol;
+  _('volLabel').innerText = Math.round(vol * 100) + '%';
+}
+
 // --- Initialization Events ---
 _('btnHeaderRules').addEventListener('click', toggleRules);
 _('btnStartGame').addEventListener('click', initGame);
@@ -769,3 +788,9 @@ _('btnRoll').addEventListener('click', rollDice);
 _('btnAction').addEventListener('click', confirmAction);
 _('btnEnd').addEventListener('click', endTurn);
 _('btnRestartMain').addEventListener('click', resetGame);
+
+// BGM Listeners
+_('btnBgmPlay').addEventListener('click', playBGM);
+_('btnBgmPause').addEventListener('click', pauseBGM);
+_('btnBgmStop').addEventListener('click', stopBGM);
+_('bgmVolume').addEventListener('input', setVolume);
