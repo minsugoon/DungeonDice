@@ -1,206 +1,304 @@
 :root{
   --bg: #121212;
-  
-  /* [수정됨] 패널 배경색 불투명도 70% (0.7)로 변경 */
-  /* 기존 Hex: #1e1e24 -> RGB: 30, 30, 36 */
-  --panel: rgba(30, 30, 36, 0.7);
-  
-  --board: #2b2b36; /* 타일 배경색 (변경 없음 - 불투명 유지) */
+  --panel: rgba(30, 30, 36, 0.85);
+  --board: #2b2b36;
   --text: #e0e0e0;
   --gold: #ffd700;
   --accent: #ff6b6b;
   --blue: #4dabf7;
   --green: #51cf66;
-}
-*{box-sizing:border-box}
-body{
-  margin:0; font-family:'Pretendard', system-ui, sans-serif;
-  background:var(--bg); color:var(--text);
-  user-select:none;
-  position: relative; 
-  min-height: 100vh; 
+  --safe-area-bottom: env(safe-area-inset-bottom);
 }
 
-/* 배경 이미지 설정 */
+* { box-sizing: border-box; touch-action: manipulation; }
+
+body {
+  margin: 0; 
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg); 
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+  position: relative;
+}
+
 body::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    content: ""; position: absolute; inset: 0;
     background-image: url('images/game_background_image.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    opacity: 0.3; 
-    z-index: -1; 
-    pointer-events: none; 
+    background-size: cover; background-position: center;
+    opacity: 0.3; z-index: -1; pointer-events: none;
 }
 
-.wrap{
-  max-width:1280px; margin:0 auto; padding:10px;
-  display:grid; grid-template-rows: auto 1fr; gap:10px; height:100vh;
-  position: relative; 
-  z-index: 1; 
+.wrap {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  max-width: 1600px; margin: 0 auto;
 }
 
 /* Header */
-header{
-  background:var(--panel); /* 70% 불투명도 적용됨 */
-  padding:10px 20px;
-  border-radius:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border:1px solid rgba(255,255,255,0.1);
-  
-  /* 로고 이미지 */
-  background-image: url('images/game_logo.png');
-  background-repeat: no-repeat;
-  background-position: 20px center; 
-  background-size: 143px 40px; 
-  padding-left: 170px; 
-}
-.round-tracker{
-  font-size:14px; font-weight:bold; color:var(--gold);
-  background:rgba(0,0,0,0.3); padding:6px 12px; border-radius:20px;
-}
-
-/* Main Layout */
-.game-body{
-  display:grid; grid-template-columns: 1fr 340px; gap:12px;
-  overflow:hidden;
-}
-@media (max-width: 900px){ .game-body{grid-template-columns: 1fr;} }
-
-/* Board Area */
-.board-panel{
-  background:var(--panel); /* 70% 불투명도 적용됨 */
-  border-radius:16px; 
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  border:1px solid rgba(255,255,255,0.05); position:relative; overflow:auto;
-}
-.grid{
-  display:grid; grid-template-columns:repeat(5, 100px); gap:6px;
-  padding:20px;
-}
-.tile{
-  width:100px; height:100px; 
-  background:var(--board); /* 타일은 불투명 유지 */
-  border-radius:8px; border:1px solid rgba(255,255,255,0.1);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  position:relative; cursor:pointer; transition:transform 0.1s;
-  font-size:16px; 
-  text-align:center;
-}
-.tile.start{ border:2px solid var(--green); background:rgba(81,207,102,0.1); }
-.tile.exit{ border:2px solid var(--gold); background:rgba(255,215,0,0.1); }
-.tile.movable{ box-shadow:inset 0 0 0 2px var(--green); background:rgba(81,207,102,0.2); animation:pulse 1.5s infinite;}
-
-.tile-cat{ 
-  font-weight:bold; margin-bottom:2px; pointer-events:none; 
-  font-size: 15px;
-}
-.tile-sub{ 
-  font-size:13px; 
-  color:#aaa; pointer-events:none; line-height: 1.2;
-}
-
-/* Meeple Styles */
-.meeple{
-  width:32px; height:32px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  position:absolute; bottom:4px;
-  transition:all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+header {
+  flex: 0 0 auto;
+  height: 50px;
+  background: var(--panel);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
   z-index: 10;
 }
-.meeple.poison { filter: grayscale(100%) sepia(100%) hue-rotate(90deg); }
-
-/* Right Panel */
-.ctrl-panel{
-  display:flex; flex-direction:column; gap:10px; overflow-y:auto;
+.logo-area { 
+    font-weight: 900; font-size: 18px; 
+    display:flex; align-items:center; gap:8px; 
+    height: 100%;
 }
-.card{ 
-  background:var(--panel); /* 70% 불투명도 적용됨 */
-  padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); 
-}
-
-.dice-container{
-  display:flex; justify-content:center; gap:8px; padding:10px;
-  background:rgba(0,0,0,0.2); border-radius:8px; min-height:60px;
-}
-.die{
-  width:48px; height:48px; background:#eee; color:#111; border-radius:8px;
-  display:grid; place-items:center; font-size:24px; font-weight:bold;
-  cursor:pointer; position:relative; box-shadow:0 3px 0 #999;
-}
-.die.held{ background:var(--green); color:#fff; box-shadow:0 3px 0 #2b8a3e; transform:translateY(2px); }
-.die.rolling{ animation:shake 0.3s infinite; }
-
-.btn-row{ display:flex; gap:8px; margin-top:10px; }
-button{
-  flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;
-  background:#333; color:#fff; transition:0.2s;
-}
-button:disabled{ opacity:0.3; cursor:not-allowed; }
-button.primary{ background:var(--blue); }
-button.action{ background:var(--accent); }
-button.item{ background:var(--gold); color:#000; }
-button.restart{ 
-  background:var(--green); color:#000; 
-  animation: pulse 2s infinite; 
-  padding: 8px 12px; 
-  max-height: 50px;
-  font-size: 13px;
+.logo-img {
+    height: auto;
+    width: auto;
+    max-height: 80%;
+    object-fit: contain;
 }
 
-.log-box{
-  flex:1; background:rgba(0,0,0,0.3); border-radius:8px; padding:10px;
-  font-size:12px; line-height:1.5; overflow-y:auto; min-height:150px;
-  border:1px solid rgba(255,255,255,0.05);
+.ver-text { font-size: 11px; opacity: 0.6; font-weight: normal; }
+.header-controls { display: flex; gap: 8px; align-items: center; }
+.round-tracker { 
+  font-size: 12px; font-weight: bold; color: var(--gold); 
+  background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 12px; 
 }
-.log-entry{ margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:4px; }
-.log-turn{ color:var(--gold); font-weight:bold; margin-top:8px; }
+.btn-mini { padding: 4px 10px; font-size: 11px; height: 26px; }
 
-/* Player List */
-.player-row{
-  display:flex; justify-content:space-between; align-items:center;
-  padding:8px; background:rgba(255,255,255,0.03); border-radius:6px; margin-bottom:4px;
+/* Game Body */
+.game-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  padding: 10px;
+  gap: 10px;
 }
-.player-row.active{ border:1px solid var(--gold); background:rgba(255,215,0,0.1); }
-.p-badge{ 
-  width:24px; height:24px; display:inline-block; margin-right:6px; 
-  background-size:contain; background-repeat:no-repeat; vertical-align:middle;
+
+/* Board */
+.board-panel {
+  flex: 2;
+  background: var(--panel);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+  display: flex; justify-content: center; align-items: center;
+  overflow: hidden;
+  position: relative;
 }
-.win-text {
-  color: var(--gold); font-weight: 900; margin-left: 8px; font-size: 14px;
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+
+.grid-container {
+  width: 100%;
+  max-width: 65vh;
+  padding: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.tile {
+  width: 100%; height: 100%;
+  background: var(--board);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; cursor: pointer;
+  user-select: none;
+  padding: 2px;
+}
+.tile.start { border: 2px solid var(--green); background: rgba(81,207,102,0.15); }
+.tile.exit { border: 2px solid var(--gold); background: rgba(255,215,0,0.15); }
+.tile.movable { 
+  box-shadow: inset 0 0 0 2px var(--green); 
+  background: rgba(81,207,102,0.25); 
+  animation: pulse 1.5s infinite; 
+}
+
+/* [수정] 폰트 크기 16px로 고정 */
+.tile-cat { 
+  font-weight: bold; 
+  font-size: 16px; 
+  text-align: center;
+  margin-bottom: 2px;
+  line-height: 1.1;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* [수정] 폰트 크기 14px로 고정 */
+.tile-sub { 
+  font-size: 14px; 
+  color: #bbb; 
+  text-align: center;
+  line-height: 1.1;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* [수정] 미플 크기 30px로 고정 */
+.meeple {
+  width: 30px; height: 30px;
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  position: absolute; bottom: 2px;
+  transition: all 0.3s ease;
+  z-index: 5;
+}
+
+/* Control Panel */
+.ctrl-panel {
+  flex: 1;
+  min-width: 300px; max-width: 360px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.card {
+  background: var(--panel);
+  padding: 12px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.dice-wrapper {
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px; padding: 10px; margin-bottom: 8px;
+  display: flex; justify-content: center;
+}
+.dice-container { display: flex; gap: 6px; justify-content: center; width: 100%; }
+
+.die {
+  flex: 1; max-width: 50px; aspect-ratio: 1/1;
+  background: #eee; color: #111; border-radius: 6px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  font-size: 20px; font-weight: bold;
+  cursor: pointer; box-shadow: 0 3px 0 #999;
+  position: relative;
+}
+.die.held { 
+  background: var(--green); color: #fff; 
+  box-shadow: 0 3px 0 #2b8a3e; transform: translateY(2px); 
+}
+.die.held::after {
+  content: 'HOLD';
+  font-size: 8px;
+  font-weight: 900;
+  position: absolute;
+  bottom: 2px;
+  letter-spacing: 0.5px;
+}
+.die.rolling { animation: shake 0.3s infinite; }
+
+.turn-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: bold; }
+.info-text { text-align: center; font-size: 12px; color: #999; margin-bottom: 8px; min-height: 16px;}
+
+.btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+button {
+  padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+  background: #333; color: #fff; transition: 0.2s; font-size: 13px;
+}
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+button.primary { background: var(--blue); }
+button.item { background: var(--gold); color: #000; }
+button.restart { width: 100%; background: #444; font-size: 12px; padding: 8px;}
+
+/* Side Info */
+.side-info-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+.card-label { font-size: 11px; color: #888; margin-bottom: 6px; }
+.player-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 8px; background: rgba(255,255,255,0.03); border-radius: 4px; margin-bottom: 4px; font-size: 12px;
+}
+.player-row.active { border: 1px solid var(--gold); background: rgba(255,215,0,0.1); }
+
+.p-badge { 
+    width: 20px; height: 20px; 
+    background-size: contain; 
+    background-repeat: no-repeat; 
+    background-position: center;  
+    margin-right: 6px; 
+    display: inline-block; 
+    vertical-align: middle; 
+}
+
+.log-box {
+  background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px;
+  font-size: 11px; line-height: 1.4; overflow-y: auto; height: 100%; max-height: 120px;
+}
+.log-entry { margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2px; }
+
+/* BGM Panel */
+.bottom-controls { display: flex; flex-direction: column; gap: 6px; }
+.bgm-mini-panel {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 8px;
+}
+.bgm-controls { display: flex; align-items: center; gap: 6px; flex: 1; justify-content: flex-end;}
+.bgm-controls button { padding: 4px 8px; font-size: 10px; width: auto; }
+input[type=range] { width: 60px; accent-color: var(--gold); }
+
+/* Mobile */
+@media (max-width: 900px) {
+  .wrap { max-width: 100%; }
+  .game-body { flex-direction: column; }
+  
+  .board-panel { 
+    flex: none; width: 100%; padding: 0; 
+    background: transparent; border: none; overflow: visible;
+  }
+  .grid-container { max-width: 100%; padding: 0 10px; }
+
+  .ctrl-panel { 
+    flex: 1; max-width: 100%; min-width: 0; overflow-y: visible; 
+  }
+  
+  .side-info-group { flex-direction: row; height: auto; }
+  .player-card, .log-card { flex: 1; height: 120px; overflow: hidden; }
+  .log-box { height: 100%; max-height: none; }
+  
+  /* [수정] 모바일에서도 요청하신 크기 유지 */
+  .tile-cat { font-size: 16px; } 
+  .tile-sub { font-size: 14px; }
+  .meeple { width: 30px; height: 30px; }
+  
+  button { padding: 14px; font-size: 14px; }
+}
+
+@media (max-height: 700px) and (orientation: landscape) {
+  .game-body { flex-direction: row; }
+  .board-panel { height: 100%; }
+  .grid-container { height: 100%; width: auto; aspect-ratio: 1/1; }
+  .ctrl-panel { width: 280px; overflow-y: auto; }
 }
 
 /* Modals */
-.modal-overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999;
-  display:none; justify-content:center; align-items:center;
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: none; justify-content: center; align-items: center; z-index: 999;
 }
-.modal{
-  background:#1a1a20; width:400px; max-width:90%; padding:24px;
-  border-radius:16px; border:1px solid #444; text-align:center;
-  box-shadow:0 20px 50px rgba(0,0,0,0.5);
+.modal {
+  background: #1a1a20; width: 90%; max-width: 360px; padding: 20px;
+  border-radius: 16px; border: 1px solid #444; text-align: center;
 }
-.card-visual{
-  width:140px; height:200px; margin:0 auto 15px; border-radius:10px;
-  display:flex; flex-direction:column; justify-content:center; align-items:center;
-  padding:10px; box-shadow:0 5px 15px rgba(0,0,0,0.5); border:4px solid #fff;
+.option-list { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.radio-box, .check-box { display: block; padding: 10px; background: #222; border-radius: 8px; cursor: pointer; }
+.divider { border-top: 1px solid #444; margin: 5px 0; }
+.card-visual {
+  width: 120px; height: 160px; margin: 0 auto 15px; border-radius: 10px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 10px; border: 3px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
-.card-action { border-color:var(--accent); background:#330000; }
-.card-item { border-color:var(--gold); background:#332b00; }
-.card-chance { border-color:var(--green); background:#001a00; }
+.card-action { border-color: var(--accent); background: #330000; }
+.card-item { border-color: var(--gold); background: #332b00; }
+.card-chance { border-color: var(--green); background: #001a00; }
+.full-width { width: 100%; }
+.inv-list-box { min-height: 80px; background: #222; padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: left; }
+.inv-item { display: inline-block; background: #333; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 12px; }
 
-.inv-item { font-size:11px; padding:4px 8px; background:#333; border-radius:4px; cursor:pointer; margin:2px; display:inline-block;}
-.inv-item:hover { background:var(--gold); color:#000; }
-
-@keyframes pulse { 0%{opacity:0.8} 50%{opacity:1} 100%{opacity:0.8} }
+@keyframes pulse { 0%{opacity:0.7} 50%{opacity:1} 100%{opacity:0.7} }
 @keyframes shake { 0%{transform:rotate(0deg)} 25%{transform:rotate(5deg)} 75%{transform:rotate(-5deg)} }
