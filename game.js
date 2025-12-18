@@ -479,24 +479,24 @@ function aiPlay(){
   }
 }
 
-// [수정] Helper: Get Tile Texts (한글화 적용 및 함정->주사위 변경)
+// Helper: Get Tile Texts (한글화 적용 및 함정->주사위 변경)
 function getTileTexts(cat) {
   switch(cat){
     case 'start': return {t:'START', s:'합 15↑'};
     case 'threeKind': return {t:'3 Kind', s:'같은 눈 3개'};
     case 'fourKind': return {t:'4 Kind', s:'같은 눈 4개'};
-    case 'fullHouse': return {t:'풀하우스', s:'3개 + 2개'}; // 한글화
-    case 'trapLow': return {t:'주사위', s:'[1, 2]'}; // 함정 -> 주사위
-    case 'trapMid': return {t:'주사위', s:'[3, 4]'}; // 함정 -> 주사위
-    case 'trapHigh': return {t:'주사위', s:'[5, 6]'}; // 함정 -> 주사위
+    case 'fullHouse': return {t:'풀하우스', s:'3개 + 2개'}; 
+    case 'trapLow': return {t:'주사위', s:'[1, 2]'}; 
+    case 'trapMid': return {t:'주사위', s:'[3, 4]'}; 
+    case 'trapHigh': return {t:'주사위', s:'[5, 6]'}; 
     case 'smallStr': return {t:'S.Straight', s:'연속 4개'};
-    case 'largeStr': return {t:'L.스트레이트', s:'연속 5개'}; // 한글화
+    case 'largeStr': return {t:'L.스트레이트', s:'연속 5개'}; 
     case 'sum25': return {t:'Sum 25↑', s:'합 25 이상'};
     case 'sum7': return {t:'Sum 7↓', s:'합 7 이하'};
-    case 'sum15Exact': return {t:'합 15', s:'합 정확히 15'}; // EXIT용 한글화
-    case 'allEven': return {t:'모두 짝수 눈', s:'모두 짝수'}; // EXIT용 한글화
-    case 'allOdd': return {t:'모두 홀수 눈', s:'모두 홀수'}; // EXIT용 한글화
-    case 'yacht': return {t:'요트', s:'같은 눈 5개'}; // 한글화
+    case 'sum15Exact': return {t:'합 15', s:'합 정확히 15'}; 
+    case 'allEven': return {t:'모두 짝수 눈', s:'모두 짝수'}; 
+    case 'allOdd': return {t:'모두 홀수 눈', s:'모두 홀수'}; 
+    case 'yacht': return {t:'요트', s:'같은 눈 5개'}; 
     case 'chance': return {t:'Chance', s:'찬스 카드'};
     default: return {t:cat, s:''};
   }
@@ -567,7 +567,6 @@ function renderPlayers(){
     const status = p.blind ? 'off' : 'on';
     const imgSrc = `images/Meeple_${PLAYER_COLORS[p.id]}_${status}.png`;
     
-    // [수정] 1위 플레이어에게 WIN 표시
     let nameHtml = `${p.name}`;
     if(G.winner !== null && G.winner === p.id){
         nameHtml += ` <span style="color:var(--gold); font-weight:bold; margin-left:4px; font-size:11px;">WIN</span>`;

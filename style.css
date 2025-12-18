@@ -17,8 +17,10 @@ body {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: var(--bg); 
   color: var(--text);
-  overflow: hidden;
-  height: 100vh;
+  /* [수정] 스크롤 허용을 위해 hidden 제거 및 auto 설정 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 100vh;
   position: relative;
 }
 
@@ -27,10 +29,13 @@ body::before {
     background-image: url('images/game_background_image.png');
     background-size: cover; background-position: center;
     opacity: 0.3; z-index: -1; pointer-events: none;
+    /* 배경이 스크롤 따라오도록 고정 */
+    position: fixed; 
 }
 
 .wrap {
-  width: 100%; height: 100%;
+  width: 100%; 
+  min-height: 100vh; /* 높이 유동적 */
   display: flex; flex-direction: column;
   max-width: 1600px; margin: 0 auto;
 }
@@ -44,6 +49,7 @@ header {
   padding: 0 16px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   z-index: 10;
+  width: 100%; /* 가로 꽉 채움 */
 }
 .logo-area { 
     font-weight: 900; font-size: 18px; 
@@ -69,9 +75,10 @@ header {
 .game-body {
   flex: 1;
   display: flex;
-  overflow: hidden;
   padding: 10px;
   gap: 10px;
+  /* [수정] 내부 스크롤 대신 전체 스크롤을 사용하기 위해 overflow 제거 */
+  height: auto; 
 }
 
 /* Board */
@@ -81,8 +88,9 @@ header {
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.05);
   display: flex; justify-content: center; align-items: center;
-  overflow: hidden;
   position: relative;
+  /* [수정] 보드 패널이 너무 커지지 않도록 설정 */
+  overflow: visible; 
 }
 
 .grid-container {
@@ -117,10 +125,11 @@ header {
   animation: pulse 1.5s infinite; 
 }
 
-/* [수정] 폰트 크기 16px로 고정 */
+/* [수정] 반응형 폰트 크기 적용 (S20 너비 고려) */
 .tile-cat { 
   font-weight: bold; 
-  font-size: 16px; 
+  /* 최소 11px, 화면 너비에 따라 커짐, 최대 16px */
+  font-size: clamp(11px, 3.5vw, 16px); 
   text-align: center;
   margin-bottom: 2px;
   line-height: 1.1;
@@ -129,9 +138,10 @@ header {
   overflow: hidden; text-overflow: ellipsis;
 }
 
-/* [수정] 폰트 크기 14px로 고정 */
+/* [수정] 반응형 폰트 크기 적용 */
 .tile-sub { 
-  font-size: 14px; 
+  /* 최소 9px, 화면 너비에 따라 커짐, 최대 14px */
+  font-size: clamp(9px, 2.5vw, 14px); 
   color: #bbb; 
   text-align: center;
   line-height: 1.1;
@@ -140,7 +150,7 @@ header {
   overflow: hidden; text-overflow: ellipsis;
 }
 
-/* [수정] 미플 크기 30px로 고정 */
+/* [수정] 미플 크기 30px 유지 */
 .meeple {
   width: 30px; height: 30px;
   background-size: contain; background-repeat: no-repeat; background-position: center;
@@ -155,7 +165,9 @@ header {
   min-width: 300px; max-width: 360px;
   display: flex; flex-direction: column;
   gap: 8px;
-  overflow-y: auto;
+  /* 모바일에서 내용이 길어지면 body 스크롤을 쓰도록 auto 해제 가능하지만
+     PC 호환을 위해 유지하되 모바일 쿼리에서 덮어씀 */
+  overflow-y: auto; 
 }
 
 .card {
@@ -233,7 +245,7 @@ button.restart { width: 100%; background: #444; font-size: 12px; padding: 8px;}
 .log-entry { margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2px; }
 
 /* BGM Panel */
-.bottom-controls { display: flex; flex-direction: column; gap: 6px; }
+.bottom-controls { display: flex; flex-direction: column; gap: 6px; margin-top: auto;}
 .bgm-mini-panel {
   display: flex; align-items: center; justify-content: space-between;
   background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 8px;
@@ -245,26 +257,22 @@ input[type=range] { width: 60px; accent-color: var(--gold); }
 /* Mobile */
 @media (max-width: 900px) {
   .wrap { max-width: 100%; }
-  .game-body { flex-direction: column; }
+  .game-body { flex-direction: column; height: auto; padding-bottom: 40px; /* 하단 여백 추가 */}
   
   .board-panel { 
     flex: none; width: 100%; padding: 0; 
     background: transparent; border: none; overflow: visible;
   }
-  .grid-container { max-width: 100%; padding: 0 10px; }
+  .grid-container { max-width: 100%; padding: 0; }
 
   .ctrl-panel { 
-    flex: 1; max-width: 100%; min-width: 0; overflow-y: visible; 
+    flex: 1; max-width: 100%; min-width: 0; 
+    overflow-y: visible; /* 컨트롤 패널 내부 스크롤 해제 -> 전체 스크롤 */
   }
   
   .side-info-group { flex-direction: row; height: auto; }
   .player-card, .log-card { flex: 1; height: 120px; overflow: hidden; }
   .log-box { height: 100%; max-height: none; }
-  
-  /* [수정] 모바일에서도 요청하신 크기 유지 */
-  .tile-cat { font-size: 16px; } 
-  .tile-sub { font-size: 14px; }
-  .meeple { width: 30px; height: 30px; }
   
   button { padding: 14px; font-size: 14px; }
 }
