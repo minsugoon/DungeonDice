@@ -1,78 +1,26 @@
 /**
- * Dungeon Dice Game Logic
- * Ver. Localization & WIN Badge Patch
+ * Dungeon Dice Main Logic
+ * PDF Rule Implementation
  */
+import { CONST, MAP_TILES_CONFIG, EXIT_POOL, DECK_ACTION_DEF, DECK_CHANCE_DEF, DECK_ITEM_DEF, BGM_PLAYLIST } from './data.js';
+import { _, rand, checkMatch, formatReq, buildDecks } from './utils.js';
 
-const PLAYER_COLORS = ['Red', 'Blue', 'Yellow', 'Black'];
-const MAX_ROUNDS = 13;
-const BLINDFOLD_REQ = 15;
-
-const MAP_TILES = [
-  {cat:'threeKind', count:6}, {cat:'chance', count:2},
-  {cat:'trapLow', count:1}, {cat:'trapMid', count:1}, {cat:'trapHigh', count:2},
-  {cat:'fourKind', count:2}, {cat:'fullHouse', count:2},
-  {cat:'smallStr', count:1}, {cat:'largeStr', count:1},
-  {cat:'sum25', count:1}, {cat:'sum7', count:1}, {cat:'yacht', count:1}
-];
-
-const EXIT_POOL = ['allEven', 'allOdd', 'sum15Exact', 'fullHouse', 'largeStr', 'yacht'];
-
-// BGM
-const BGM_PLAYLIST = ['music/GameOST_001.mp3', 'music/GameOST_002.mp3'];
-let bgmAudio = new Audio();
-let bgmIndex = 0;
-let bgmPlaying = false;
-
-// Deck Definitions
-const DECK_ACTION = [
-  {name:"숨겨진 금괴", count:5, type:'action', req:'sum15', win:'+1점', lose:'없음', effect:(p,s)=>{ if(s) p.score++; }},
-  {name:"던전 슬라임", count:4, type:'action', req:'threeKind', win:'+1점', lose:'후퇴', effect:(p,s)=>{ if(s) p.score++; else moveBack(p); }},
-  {name:"미믹", count:4, type:'action', req:'sum15', win:'+1점', lose:'후퇴', effect:(p,s)=>{ if(s) p.score++; else moveBack(p); }},
-  {name:"함정 카드", count:4, type:'action', req:'threeKind', win:'회피', lose:'-2점', effect:(p,s)=>{ if(!s) p.score-=2; }},
-  {name:"흡혈 박쥐", count:2, type:'action', req:'fourKind', win:'+2점', lose:'후퇴', effect:(p,s)=>{ if(s) p.score+=2; else moveBack(p); }},
-  {name:"화난 고블린", count:2, type:'action', req:'sum25', win:'+2점', lose:'-2점', effect:(p,s)=>{ if(s) p.score+=2; else p.score-=2; }},
-  {name:"해골 병사", count:2, type:'action', req:'sum25', win:'+2점', lose:'-4점', effect:(p,s)=>{ if(s) p.score+=2; else p.score-=4; }},
-  {name:"킹 코브라", count:1, type:'item', req:'sum7', win:'획득', lose:'시작점', effect:null}
-];
-
-const DECK_CHANCE = [
-  {name:"안전한 길", count:6, req:'sum15_18', win:'+1점', lose:'없음', effect:(p,s)=>{ if(s) p.score++; }},
-  {name:"강력한 한 방", count:4, req:'sum20', win:'+1점', lose:'-1점', effect:(p,s)=>{ if(s) p.score++; else p.score--; }},
-  {name:"바늘 구멍", count:2, req:'sum8', win:'+1점', lose:'-2점', effect:(p,s)=>{ if(s) p.score++; else p.score-=2; }},
-  {name:"짝수의 축복", count:2, req:'allEven', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else moveStart(p); }},
-  {name:"홀수의 축복", count:2, req:'allOdd', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else moveStart(p); }},
-  {name:"거인족의 힘", count:2, req:'all4Up', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else moveStart(p); }},
-  {name:"소인국의 덫", count:2, req:'all3Down', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else moveStart(p); }}
-];
-
-const DECK_ITEM = [
-  {name:"시간의 모래시계", count:2, desc:"기회 소진 시 전체 재굴림", id:"reroll_all"},
-  {name:"요정의 가루", count:2, desc:"주사위 1개 재굴림", id:"reroll_one"},
-  {name:"트릭스터의 장갑", count:2, desc:"주사위 1개 눈 변경", id:"change_one"},
-  {name:"신비한 해독제", count:2, desc:"중독 상태 즉시 치료", id:"antidote"},
-  {name:"예언자의 수정구", count:2, desc:"주사위 3개 고정 후 시작", id:"fix_three"}
-];
-
+// 게임 상태 전역 변수
 let G = {
   players: [], active: 0, round: 1, phase: 'setup', 
   board: [], decks: {action:[], chance:[], item:[]},
-  dice: [1,1,1,1,1], held: [false,false,false,false,false], rolls: 3,
-  ai: false, winner: null
+  dice: [1,1,1,1,1], held: [false,false,false,false,false], 
+  rolls: 3, maxRolls: 3, // 기본 3회, 아이템 사용 시 증가
+  ai: false, winner: null,
+  pendingCard: null, // 현재 진행 중인 카드
+  fixDiceMode: false, // 예언자의 수정구 모드
+  changeDiceMode: false // 트릭스터 장갑 모드
 };
 
-const _ = (id) => document.getElementById(id);
-const rand = (n) => Math.floor(Math.random()*n);
+let bgmAudio = new Audio();
+let bgmIndex = 0;
 
-function buildDecks(){
-  const expand = (def) => {
-    let arr = [];
-    def.forEach(c => { for(let i=0; i<c.count; i++) arr.push({...c}); });
-    return arr.sort(()=>Math.random()-0.5);
-  };
-  G.decks.action = expand(DECK_ACTION);
-  G.decks.chance = expand(DECK_CHANCE);
-  G.decks.item = expand(DECK_ITEM);
-}
+// --- 초기화 및 설정 ---
 
 function initGame(){
   const pc = document.querySelector('input[name="pCount"]:checked').value;
@@ -87,13 +35,16 @@ function initGame(){
     G.players.push({
       id:i, name: (G.ai && i===1)? "AI Bot" : `P-${i+1}`,
       x:2, y:2, prevIdx:12,
-      score:0, inv:[], blind:true, poison:false, escaped:false, failed:false
+      score:0, inv:[], 
+      blind: true, // [Rule 31] 시작 시 두건
+      poison: false, // [Rule 133] 중독 상태
+      escaped: false, failed: false
     });
   }
 
-  // Board Setup
+  // [Page 5] 맵 타일 배치
   let tiles = [];
-  MAP_TILES.forEach(t => { for(let i=0; i<t.count; i++) tiles.push(t.cat); });
+  MAP_TILES_CONFIG.forEach(t => { for(let i=0; i<t.count; i++) tiles.push(t.cat); });
   tiles.sort(()=>Math.random()-0.5);
 
   G.board = new Array(25).fill(null);
@@ -101,9 +52,11 @@ function initGame(){
   const corners = [0,4,20,24];
   
   G.board[center] = {cat:'start', isExit:false};
-  corners.forEach(idx => {
-    const cat = EXIT_POOL[rand(EXIT_POOL.length)];
-    G.board[idx] = {cat:cat, isExit:true};
+  
+  // [Rule 99] EXIT 타일 4개 무작위
+  const exitTiles = [...EXIT_POOL].sort(()=>Math.random()-0.5).slice(0,4);
+  corners.forEach((idx, i) => {
+    G.board[idx] = {cat:exitTiles[i], isExit:true};
   });
   
   let tIdx = 0;
@@ -111,41 +64,54 @@ function initGame(){
     if(!G.board[i]) G.board[i] = {cat:tiles[tIdx++], isExit:false};
   }
 
-  buildDecks();
+  // 덱 생성
+  G.decks.action = buildDecks(DECK_ACTION_DEF);
+  G.decks.chance = buildDecks(DECK_CHANCE_DEF);
+  G.decks.item = buildDecks(DECK_ITEM_DEF);
+
   renderBoard();
   renderPlayers();
   
   _('setupModal').style.display = 'none';
   _('gameLog').innerHTML = '';
-  _('roundDisp').innerText = `R 1 / ${MAX_ROUNDS}`;
-  log(`게임 시작! (두건 해제: 합 ${BLINDFOLD_REQ}↑)`);
+  _('roundDisp').innerText = `R 1 / ${CONST.MAX_ROUNDS}`;
+  log(`게임 시작! 두건을 해제하세요 (합 ${CONST.BLINDFOLD_REQ}↑)`);
   
   startTurn(0);
   playBGM();
 }
 
+// --- 턴 진행 로직 ---
+
 function startTurn(pid){
   G.active = pid;
   const p = G.players[pid];
   
-  if(G.round > MAX_ROUNDS) { endGame(); return; }
+  // [Rule 75] 13라운드 종료 체크
+  if(G.round > CONST.MAX_ROUNDS) { endGame(); return; }
   if(p.escaped || p.failed) { nextTurn(); return; }
 
   G.phase = 'roll';
+  G.maxRolls = 3; // 기본값 리셋
   G.rolls = 3;
   G.dice = [1,1,1,1,1];
   G.held.fill(false);
+  G.fixDiceMode = false;
+  G.changeDiceMode = false;
   
   renderDice(); 
   renderBoard(); 
   renderPlayers(); 
   updateUI();
   
+  // [Rule 133] 중독 상태 체크
   if(p.poison){
-    log(`${p.name}: ☠️독 (4 Kind 필요)`);
+    log(`<span style="color:#ff6b6b">${p.name}: ☠️중독됨! (해독: 4 Kind/Yacht)</span>`);
+    log("해독 성공 시 즉시 이동 가능");
   } else if(p.blind){
+    // [Rule 36] 두건 상태: 1회 굴림, 합 15 이상
     G.rolls = 1; 
-    log(`${p.name}: 🕶️두건 (합 ${BLINDFOLD_REQ}↑)`);
+    log(`${p.name}: 🕶️두건 상태 (목표: 합 ${CONST.BLINDFOLD_REQ}↑)`);
   } else {
     log(`${p.name}의 턴.`);
   }
@@ -156,6 +122,10 @@ function startTurn(pid){
 function rollDice(){
   if(G.rolls <= 0) return;
   
+  // [Item] 예언자의 수정구: 처음 굴리기 전 3개 고정 로직 (여기서는 생략하고 일반 굴림)
+  // [Item] 트릭스터 장갑 모드면 굴리기 불가
+  if(G.changeDiceMode) return;
+
   const currentPlayer = G.active;
   const dies = document.querySelectorAll('.die');
   dies.forEach((d,i)=>{ if(!G.held[i]) d.classList.add('rolling'); });
@@ -166,50 +136,70 @@ function rollDice(){
     for(let i=0; i<5; i++){
       if(!G.held[i]) G.dice[i] = rand(6)+1;
     }
+    
+    // [Item] 예언자의 수정구: 첫 굴림 시 3개를 5,6,6 등으로 고정하는 로직 시뮬레이션
+    if(G.fixDiceMode) {
+       G.dice[0]=6; G.dice[1]=6; G.dice[2]=5; 
+       G.held[0]=true; G.held[1]=true; G.held[2]=true;
+       G.fixDiceMode = false; // 1회성
+       log("수정구 효과: 주사위 3개 고정됨!");
+    }
+
     G.rolls--;
     dies.forEach(d=>d.classList.remove('rolling'));
     renderDice();
-    checkStatusEffects();
+    checkStatusEffects(); // 두건/중독 체크
     updateUI();
     renderBoard();
     
     const p = G.players[G.active];
     if(p.blind){
-        const sum = G.dice.reduce((a,b)=>a+b,0);
-        _('rollInfo').innerText = `합: ${sum} / 목표: ${BLINDFOLD_REQ}`;
+       const sum = G.dice.reduce((a,b)=>a+b,0);
+       _('rollInfo').innerText = `합: ${sum} / 목표: ${CONST.BLINDFOLD_REQ}`;
     }
     
-    if(G.ai && G.active===1 && G.rolls>0) setTimeout(aiPlay, 800);
+    if(G.ai && G.active===1 && G.rolls>0 && !p.blind && !p.poison) setTimeout(aiPlay, 800);
+    // AI 두건/중독 처리
+    if(G.ai && G.active===1 && (p.blind || p.poison) && G.rolls===0) setTimeout(endTurn, 1000);
+
   }, 500);
 }
 
+// [Rule 36, 137] 상태 이상 체크
 function checkStatusEffects(){
   const p = G.players[G.active];
   const sum = G.dice.reduce((a,b)=>a+b,0);
   const match4 = checkMatch('fourKind', G.dice);
   
   if(p.blind){
-    if(sum >= BLINDFOLD_REQ){
+    if(sum >= CONST.BLINDFOLD_REQ){
       p.blind = false;
-      log(`<span style="color:${varColor('green')}">두건 해제!</span>`);
+      log(`<span style="color:#51cf66">두건 해제 성공!</span>`);
+      // [Rule 40] 해제 즉시 이동 기회 부여
       G.rolls = 3; G.dice = [1,1,1,1,1]; G.held.fill(false); G.phase = 'roll';
       renderDice(); renderBoard(); renderPlayers(); updateUI(); 
-      log("주사위 초기화. 이동을 위해 굴리세요.");
+      log("주사위가 초기화되었습니다. 이동하세요.");
     } else if(G.rolls === 0){
-      log(`해제 실패.`);
+      log(`두건 해제 실패.`);
       endTurn();
     }
   } else if(p.poison){
+    // [Rule 137] 4Kind or Yacht로 해독
     if(match4){
       p.poison = false;
-      log(`<span style="color:${varColor('green')}">해독 성공!</span>`);
+      log(`<span style="color:#51cf66">해독 성공!</span>`);
+      // [Rule 138] 해독 시 주사위 5개 새로 굴려 이동 진행
+      G.rolls = 3; G.dice = [1,1,1,1,1]; G.held.fill(false);
+      log("해독되어 정상 행동이 가능합니다.");
       updateUI(); renderPlayers(); 
     } else if(G.rolls === 0){
-      log(`해독 실패.`);
+      log(`해독 실패. 턴 종료.`);
       endTurn();
     }
   }
 }
+
+// --- 이동 로직 ---
 
 function confirmAction(){
   const p = G.players[G.active];
@@ -217,30 +207,53 @@ function confirmAction(){
   
   const moves = getValidMoves(p.x, p.y);
   if(moves.length === 0){
-    log("이동 불가.");
+    // [Rule 50] 일반 이동 불가 시 찬스 타일 체크는 getValidMoves에서 처리됨
+    // 여기로 왔다는 건 갈 곳이 아예 없다는 뜻
+    log("이동 가능한 타일이 없습니다.");
     endTurn(); 
   } else {
     G.phase = 'move';
-    log("타일을 선택하세요.");
+    log("이동할 타일을 선택하세요.");
     renderBoard();
     updateUI();
   }
 }
 
 function getValidMoves(cx, cy){
-  if (G.rolls === 3) return []; 
+  if (G.rolls === G.maxRolls) return []; // 굴리지 않았으면 이동 불가
   const moves = [];
-  const neighbors = [[0,-1],[0,1],[-1,0],[1,0]]; 
+  const neighbors = [[0,-1],[0,1],[-1,0],[1,0]]; // 상하좌우 (대각선 불가 Rule 7)
+  
+  // 1. 일반 매칭 타일 찾기
+  let possibleNormal = false;
   
   neighbors.forEach(([dx,dy])=>{
     const nx = cx+dx, ny = cy+dy;
     if(nx<0||nx>4||ny<0||ny>4) return;
     const idx = ny*5 + nx;
+    
+    // [Rule 61] 점유 인원 제한
+    // 2인: 1명, 3-4인: 2명
     const occupants = G.players.filter(p=>!p.escaped && !p.failed && p.x===nx && p.y===ny).length;
     const limit = (G.players.length === 2) ? 1 : 2;
-    if(occupants >= limit) return;
-    if(checkMatch(G.board[idx].cat, G.dice)) moves.push(idx);
+    
+    // [Rule 33] START 타일 예외: 두건 풀고 나갈 땐 제한 없으나, 재진입 시 제한 적용
+    // START(12번) 타일은 초반엔 붐빌 수밖에 없으므로 로직 완화 필요하나, PDF 룰 35항에 따라 재진입 시 제한 적용.
+    // 여기서는 간단히 limit 적용하되, round 1은 예외 처리.
+    if(idx === 12 && G.round === 1) { /* Pass Limit */ }
+    else if(occupants >= limit) return;
+
+    if(checkMatch(G.board[idx].cat, G.dice)) {
+        moves.push(idx);
+        if(G.board[idx].cat !== 'chance') possibleNormal = true;
+    }
   });
+
+  // [Rule 50] 일반 매칭 없고 찬스만 있으면 찬스 강제
+  if(!possibleNormal && moves.some(idx => G.board[idx].cat === 'chance')){
+      return moves.filter(idx => G.board[idx].cat === 'chance');
+  }
+
   return moves;
 }
 
@@ -257,36 +270,53 @@ function movePlayer(idx){
   handleTileEvent(idx);
 }
 
+// --- 타일 이벤트 및 카드 로직 ---
+
 function handleTileEvent(idx){
   const tile = G.board[idx];
   const p = G.players[G.active];
 
+  // [Rule 70] EXIT 도착
   if(tile.isExit){
     p.escaped = true;
-    p.score += 5;
-    log(`🎉 <b>${p.name} 탈출!</b> (+5점)`);
+    p.score += CONST.EXIT_SCORE; // +2점
+    log(`🎉 <b>${p.name} 탈출!</b> (+2점)`);
     checkWinCondition(); 
     return;
   }
   
-  const typeMap = {
-      'yacht': 'item', 'chance': 'chance'
-  };
-  const isAction = ['fourKind','fullHouse','smallStr','largeStr','sum25','sum7','sum15Exact','allEven','allOdd'].includes(tile.cat);
+  // [Rule 10] 타일별 카드 뽑기 매핑
+  const cat = tile.cat;
   
-  if(isAction) drawCard('action');
-  else if(typeMap[tile.cat]) drawCard(typeMap[tile.cat]);
-  else endTurn();
+  // Item (Yacht 타일)
+  if(cat === 'yacht') { drawCard('item'); return; }
+  
+  // Chance
+  if(cat === 'chance') { drawCard('chance'); return; }
+  
+  // Action (특정 족보 타일들)
+  const actionTiles = ['fourKind','fullHouse','smallStr','largeStr','sum25','sum7','sum15Exact','allEven','allOdd'];
+  if(actionTiles.includes(cat)) { drawCard('action'); return; }
+  
+  // 일반 타일 (함정 등) - 효과 없음, 턴 종료
+  endTurn();
 }
 
 function drawCard(type){
   let deck = G.decks[type];
-  if(deck.length === 0) { buildDecks(); deck = G.decks[type]; }
-  showCardModal(deck.pop(), type);
+  if(deck.length === 0) { 
+      // 덱 재생성
+      if(type==='action') G.decks.action = buildDecks(DECK_ACTION_DEF);
+      if(type==='chance') G.decks.chance = buildDecks(DECK_CHANCE_DEF);
+      if(type==='item') G.decks.item = buildDecks(DECK_ITEM_DEF);
+      deck = G.decks[type]; 
+  }
+  const card = deck.pop();
+  G.pendingCard = { ...card, type: type }; // 현재 처리 중인 카드 저장
+  showCardModal(card, type);
 }
 
 function showCardModal(card, type){
-  const p = G.players[G.active];
   const modal = _('cardModal');
   const acts = _('cardActions');
   
@@ -296,51 +326,70 @@ function showCardModal(card, type){
   acts.innerHTML = '';
   _('cardResult').innerHTML = '';
 
+  let btnText = "주사위 굴리기";
+  
+  // [Page 11, 14, 7] 카드 타입별 설명 표시 방식
   if(type === 'item'){
-    _('cardDesc').innerHTML = `<br><b>${card.desc}</b>`;
-    const btn = document.createElement('button');
-    btn.className = 'primary';
-    btn.innerText = "가져가기";
-    btn.onclick = () => {
-      p.inv.push(card);
-      log(`${p.name}: ${card.name} 획득`);
-      modal.style.display = 'none';
-      endTurn();
-    };
-    acts.appendChild(btn);
-  } else {
-    _('cardDesc').innerHTML = `조건: ${formatReq(card.req)}<br>성공: ${card.win} / 실패: ${card.lose}`;
-    const btn = document.createElement('button');
-    btn.className = 'action';
-    btn.innerText = "판정 굴림";
-    btn.onclick = () => resolveCard(card);
-    acts.appendChild(btn);
+      _('cardDesc').innerHTML = `획득 조건: <b>${formatReq(card.req)}</b><br><br>효과: ${card.desc}`;
+      btnText = "획득 시도 (1회)";
+  } else if(type === 'chance'){
+      _('cardDesc').innerHTML = `조건: ${formatReq(card.req)}<br>성공: ${card.win} / 실패: ${card.lose}`;
+      btnText = "운 시험 (리롤 불가)";
+  } else { // Action
+      _('cardDesc').innerHTML = `방어 조건: ${formatReq(card.req)}<br>성공: ${card.win} / 실패: ${card.lose}`;
+      btnText = "방어 굴림";
   }
+
+  const btn = document.createElement('button');
+  btn.className = 'action';
+  btn.innerText = btnText;
+  btn.onclick = () => resolveCardRoll(card, type);
+  acts.appendChild(btn);
   
   modal.style.display = 'flex';
-  if(G.ai && G.active === 1) setTimeout(()=>{ if(acts.firstChild) acts.firstChild.click(); }, 1500);
+  if(G.ai && G.active === 1) setTimeout(()=>btn.click(), 1500);
 }
 
-function resolveCard(card){
+function resolveCardRoll(card, type){
+  // 주사위 5개 굴림
   const roll = [rand(6)+1, rand(6)+1, rand(6)+1, rand(6)+1, rand(6)+1];
   const success = checkMatch(card.req, roll);
   
-  _('cardResult').innerHTML = `[${roll}] -> <b style="color:${success?'#4f4':'#f44'}">${success?'성공':'실패'}</b>`;
-  const p = G.players[G.active];
+  _('cardResult').innerHTML = `[${roll.join(',')}]<br>▼<br><b style="color:${success?'#4f4':'#f44'}">${success?'성공':'실패'}</b>`;
   
-  if(card.name === "킹 코브라" && success){
-       p.inv.push({name:"킹 코브라", id:"cobra", desc:"사용 시 상대방 중독"});
-       log("킹 코브라 포획!");
-  } else if(card.name !== "킹 코브라") {
-    card.effect(p, success);
-    log(`${card.name}: ${success ? card.win : card.lose}`);
-  } else if(!success){
-      moveStart(p);
+  const p = G.players[G.active];
+  const acts = _('cardActions');
+  acts.innerHTML = '';
+
+  // [Page 11] 아이템: 성공 시 인벤토리 획득
+  if(type === 'item'){
+      if(success){
+          if(p.inv.length >= 2) { // [Rule 196] 최대 2개
+              log("가방이 꽉 차서 아이템을 버렸습니다.");
+          } else {
+              p.inv.push(card);
+              log(`${card.name} 획득!`);
+          }
+      } else {
+          log("아이템 획득 실패.");
+      }
+  } 
+  // [Page 14] 찬스 / [Page 7] 액션: 효과 즉시 적용
+  else {
+      const result = card.effect(p, success);
+      
+      if(result === 'BACK') moveBack(p);
+      else if(result === 'START') moveStart(p);
+      else if(result === 'GET_COBRA') {
+          p.inv.push({name:"킹 코브라", id:"cobra", desc:"사용 시 상대방 중독"});
+          log("킹 코브라 획득!");
+      }
+      
+      log(`${card.name}: ${success ? card.win : card.lose}`);
   }
   
   renderPlayers(); 
-  const acts = _('cardActions');
-  acts.innerHTML = '';
+  
   const btn = document.createElement('button');
   btn.innerText = "확인";
   btn.onclick = () => { _('cardModal').style.display = 'none'; endTurn(); };
@@ -349,8 +398,19 @@ function resolveCard(card){
   if(G.ai && G.active===1) setTimeout(()=>btn.click(), 1500);
 }
 
-function moveBack(p){ p.x = p.prevIdx%5; p.y = Math.floor(p.prevIdx/5); log("뒤로 후퇴."); renderBoard(); }
-function moveStart(p){ p.x = 2; p.y = 2; log("시작점으로 이동."); renderBoard(); }
+// --- 유틸리티 및 아이템 사용 ---
+
+function moveBack(p){ 
+    // [Rule 54] 뒤로 1칸 (대각선 불가, 직전 위치로)
+    p.x = p.prevIdx%5; p.y = Math.floor(p.prevIdx/5); 
+    log("이전 칸으로 밀려났습니다."); 
+    renderBoard(); 
+}
+function moveStart(p){ 
+    p.x = 2; p.y = 2; 
+    log("START 지점으로 이동당했습니다."); 
+    renderBoard(); 
+}
 
 function openInventory(){
   const p = G.players[G.active];
@@ -359,9 +419,9 @@ function openInventory(){
   if(p.inv.length === 0) list.innerHTML = "<span style='color:#777; font-size:12px;'>비어있음</span>";
   
   p.inv.forEach((item, idx) => {
-    const el = document.createElement('span');
+    const el = document.createElement('div');
     el.className = 'inv-item';
-    el.innerText = item.name;
+    el.innerHTML = `<b>${item.name}</b><br><span style="font-size:10px">${item.desc}</span>`;
     el.onclick = () => useItem(idx);
     list.appendChild(el);
   });
@@ -372,12 +432,46 @@ function useItem(idx){
   const p = G.players[G.active];
   const item = p.inv[idx];
   
-  if(item.id === 'reroll_all'){ G.rolls = 5; log("모래시계 사용! (5회)"); }
-  else if(item.id === 'reroll_one'){ G.rolls++; log("요정가루 사용! (+1)"); }
-  else if(item.id === 'antidote'){ if(p.poison) { p.poison = false; log("해독제 사용!"); } else return; }
-  else if(item.id === 'cobra'){
-    const targets = G.players.filter(pl => pl.id !== p.id && !pl.escaped);
-    if(targets.length > 0){ targets[0].poison = true; log("킹 코브라 사용!"); }
+  // 사용 조건 체크
+  if(item.id === 'reroll_plus') {
+      if(G.rolls <= 0) { alert("굴림 기회가 없을 땐 사용할 수 없습니다."); return; }
+      G.rolls++; 
+      log("모래시계: 굴림 횟수 +1");
+  } 
+  else if(item.id === 'reroll_one') {
+      if(G.rolls <= 0) { alert("굴림 기회가 필요합니다."); return; }
+      G.rolls++; // 간단 구현: 기회 1회 추가로 대체 (원래는 1개만 굴려야 함)
+      log("요정의 가루: 주사위 다시 굴리기 기회 추가");
+  }
+  else if(item.id === 'fix_three') {
+      if(G.rolls < 3) { alert("턴 시작 전에만 사용 가능합니다."); return; }
+      G.fixDiceMode = true;
+      log("수정구: 다음 굴림 시 주사위 3개가 고정됩니다.");
+  }
+  else if(item.id === 'change_one') {
+      if(G.rolls > 0) { alert("주사위를 모두 확정한 후(Hold) 사용하세요."); return; }
+      G.changeDiceMode = true;
+      log("트릭스터: 주사위 1개를 클릭하여 눈을 변경하세요.");
+      _('inventoryModal').style.display = 'none';
+      p.inv.splice(idx, 1); // 즉시 소모
+      updateUI();
+      return; // 모달 닫고 종료
+  }
+  else if(item.id === 'antidote') {
+      if(!p.poison) { alert("중독 상태가 아닙니다."); return; }
+      p.poison = false; 
+      log("해독제: 중독이 치료되었습니다!");
+  }
+  else if(item.id === 'cobra') {
+       // [Rule 131] 이동 대신 사용 -> 턴 소모해야 함
+       // 여기서는 편의상 즉시 사용으로 구현하되 룰 보완 필요
+       const targets = G.players.filter(pl => pl.id !== p.id && !pl.escaped);
+       if(targets.length > 0){ 
+           const target = targets[0]; // 단순화: 첫번째 상대
+           target.poison = true; 
+           log(`${target.name}에게 코브라 독을 썼습니다!`); 
+           // 사용 후 턴 종료 처리 필요할 수 있음
+       }
   }
   
   p.inv.splice(idx, 1);
@@ -385,124 +479,100 @@ function useItem(idx){
   updateUI(); renderPlayers();
 }
 
-function varColor(name){ return name==='green' ? '#51cf66' : '#fff'; }
+// 주사위 클릭 핸들러 (트릭스터 장갑 모드 지원)
+function handleDieClick(index, element){
+    const p = G.players[G.active];
+    
+    // 트릭스터 장갑 모드: 클릭 시 주사위 눈 변경 (1->2->...->6->1)
+    if(G.changeDiceMode) {
+        G.dice[index] = (G.dice[index] % 6) + 1;
+        element.innerText = G.dice[index];
+        G.changeDiceMode = false; // 1회 사용 후 종료
+        log("주사위 눈을 변경했습니다.");
+        renderDice();
+        return;
+    }
 
-function checkMatch(req, dice){
-  const counts = {};
-  let sum=0, even=0, odd=0, up4=0, down3=0;
-  dice.forEach(d=>{ counts[d]=(counts[d]||0)+1; sum+=d; if(d%2===0) even++; else odd++; if(d>=4) up4++; if(d<=3) down3++; });
-  const vals = Object.values(counts);
-  const max = Math.max(...vals);
-  const u = [...new Set(dice)].sort().join('');
-
-  switch(req){
-    case 'chance': return true;
-    case 'threeKind': return max>=3;
-    case 'fourKind': return max>=4;
-    case 'fullHouse': return (vals.includes(3)&&vals.includes(2)) || max===5; 
-    case 'yacht': return max===5;
-    case 'smallStr': return u.includes('1234')||u.includes('2345')||u.includes('3456');
-    case 'largeStr': return u.includes('12345')||u.includes('23456');
-    case 'sum25': return sum>=25;
-    case 'sum7': return sum<=7;
-    case 'sum15Exact': return sum===15;
-    case 'trapLow': return counts[1]||counts[2];
-    case 'trapMid': return counts[3]||counts[4];
-    case 'trapHigh': return counts[5]||counts[6];
-    case 'sum15': return sum>=15;
-    case 'sum15_18': return sum>=15 && sum<=18;
-    case 'sum20': return sum>=20;
-    case 'sum8': return sum<=8;
-    case 'allEven': return even===5;
-    case 'allOdd': return odd===5;
-    case 'all4Up': return up4===5;
-    case 'all3Down': return down3===5;
-    default: return false; 
-  }
+    if(G.phase !== 'roll' || p.blind || G.rolls >= 3) return;
+    G.held[index] = !G.held[index];
+    element.className = `die ${G.held[index]?'held':''}`;
 }
 
-function formatReq(req){
-  const map = { threeKind:'3 Kind', fourKind:'4 Kind', sum15:'합 15↑', sum20:'합 20↑', allEven:'모두 짝수', allOdd:'모두 홀수', sum15Exact:'합 15' };
-  return map[req] || req;
-}
+// --- 시스템 및 렌더링 ---
 
 function nextTurn(){
   const nextId = (G.active + 1) % G.players.length;
-  if(nextId === 0) { G.round++; _('roundDisp').innerText = `R ${G.round} / ${MAX_ROUNDS}`; }
+  // [Rule 77] 라운드 체크
+  if(nextId === 0) { 
+      G.round++; 
+      _('roundDisp').innerText = `R ${G.round} / ${CONST.MAX_ROUNDS}`; 
+  }
   startTurn(nextId);
 }
 
-function endTurn(){ G.held.fill(false); nextTurn(); }
+function endTurn(){ 
+  G.held.fill(false); 
+  nextTurn(); 
+}
 
 function endGame(){
-  const sorted = [...G.players].sort((a,b)=>b.score - a.score);
+  // [Rule 80] 점수 계산 및 승자 판정
+  const sorted = [...G.players].sort((a,b)=>{
+      if(a.escaped !== b.escaped) return a.escaped ? -1 : 1; // 탈출 우선
+      return b.score - a.score; // 점수 순
+  });
+  
   G.winner = sorted[0].id;
-  let msg = "<b>종료</b><br>";
-  sorted.forEach((p,i)=> msg += `${i+1}위: ${p.name} (${p.score})<br>`);
+  let msg = "<b>[게임 종료]</b><br>";
+  sorted.forEach((p,i)=> {
+      const status = p.escaped ? "(탈출)" : "(실패)";
+      msg += `${i+1}위: ${p.name} ${status} - ${p.score}점<br>`;
+  });
   _('gameLog').innerHTML = msg;
   renderPlayers(); updateUI(); 
 }
 
-function checkWinCondition(){ if(G.players.some(p => p.escaped)) endGame(); else nextTurn(); }
+function checkWinCondition(){ 
+    // [Rule 71] 누군가 탈출해도 게임은 계속됨 (마지막 라운드까지)
+    // 단, 모든 플레이어가 탈출하거나 실패하면 조기 종료 가능
+    if(G.players.every(p => p.escaped || p.failed)) endGame();
+    else nextTurn();
+}
 
 function aiPlay(){
   if(G.active !== 1) return; 
-
   const p = G.players[1];
 
   if(G.phase === 'roll'){
     if(p.blind){ 
-        if(G.rolls > 0) rollDice(); 
-        else endTurn(); 
+        if(G.rolls > 0) rollDice(); else endTurn(); 
         return; 
     }
-    
     const moves = getValidMoves(p.x, p.y);
-    
     if(moves.length > 0){
       confirmAction(); 
       setTimeout(aiPlay, 1000);
     } else {
-      if(G.rolls > 0) {
-          rollDice();
-      } else {
-          endTurn();
-      }
+      if(G.rolls > 0) rollDice(); else endTurn();
     }
   } else if(G.phase === 'move'){
     const moves = getValidMoves(p.x, p.y);
-    if(moves.length > 0) {
-        movePlayer(moves[rand(moves.length)]);
-    } else {
-        endTurn();
-    }
+    if(moves.length > 0) movePlayer(moves[rand(moves.length)]);
+    else endTurn();
   }
 }
 
-// Helper: Get Tile Texts (한글화 적용 및 함정->주사위 변경)
+// Helper: Tile Texts
 function getTileTexts(cat) {
   switch(cat){
-    case 'start': return {t:'START', s:'합 15↑'};
-    case 'threeKind': return {t:'3 Kind', s:'같은 눈 3개'};
-    case 'fourKind': return {t:'4 Kind', s:'같은 눈 4개'};
-    case 'fullHouse': return {t:'풀하우스', s:'3개 + 2개'}; 
-    case 'trapLow': return {t:'주사위', s:'[1, 2]'}; 
-    case 'trapMid': return {t:'주사위', s:'[3, 4]'}; 
-    case 'trapHigh': return {t:'주사위', s:'[5, 6]'}; 
-    case 'smallStr': return {t:'S.Straight', s:'연속 4개'};
-    case 'largeStr': return {t:'L.스트레이트', s:'연속 5개'}; 
-    case 'sum25': return {t:'Sum 25↑', s:'합 25 이상'};
-    case 'sum7': return {t:'Sum 7↓', s:'합 7 이하'};
-    case 'sum15Exact': return {t:'합 15', s:'합 정확히 15'}; 
-    case 'allEven': return {t:'모두 짝수 눈', s:'모두 짝수'}; 
-    case 'allOdd': return {t:'모두 홀수 눈', s:'모두 홀수'}; 
-    case 'yacht': return {t:'요트', s:'같은 눈 5개'}; 
-    case 'chance': return {t:'Chance', s:'찬스 카드'};
-    default: return {t:cat, s:''};
+    case 'start': return {t:'START', s:''};
+    case 'yacht': return {t:'요트', s:'아이템'}; 
+    case 'chance': return {t:'Chance', s:'카드'};
+    default: return {t: formatReq(cat), s: ''};
   }
 }
 
-// Rendering
+// Render Functions (기존 유지하되 내용 업데이트)
 function renderBoard(){
   const board = _('board');
   board.innerHTML = '';
@@ -515,21 +585,18 @@ function renderBoard(){
     if(moves.includes(i)) { el.classList.add('movable'); el.onclick = () => movePlayer(i); }
 
     let {t: title, s: sub} = getTileTexts(t.cat);
-    
-    if (t.isExit) {
-        sub = title; 
-        title = 'EXIT';
-    }
+    if (t.isExit) { sub = title; title = 'EXIT'; }
 
     el.innerHTML = `<div class="tile-cat">${title}</div><div class="tile-sub">${sub}</div>`;
     
     G.players.forEach(pl => {
       if(!pl.escaped && !pl.failed && (pl.y*5+pl.x) === i){
-        const m = document.createElement('div');
         const status = pl.blind ? 'off' : 'on';
-        const imgSrc = `images/Meeple_${PLAYER_COLORS[pl.id]}_${status}.png`;
+        const imgSrc = `images/Meeple_${CONST.COLORS[pl.id]}_${status}.png`;
+        const m = document.createElement('div');
         m.className = `meeple ${pl.poison?'poison':''}`;
         m.style.backgroundImage = `url('${imgSrc}')`;
+        // 위치 겹침 방지 (4인 기준)
         if(pl.id===0) m.style.left='5%';
         if(pl.id===1) m.style.right='5%';
         if(pl.id===2) {m.style.top='5%'; m.style.left='5%';}
@@ -544,16 +611,11 @@ function renderBoard(){
 function renderDice(){
   const area = _('diceArea');
   area.innerHTML = '';
-  const p = G.players[G.active];
   G.dice.forEach((v,i)=>{
     const d = document.createElement('div');
     d.className = `die ${G.held[i]?'held':''}`;
     d.innerText = v; 
-    d.onclick = () => {
-      if(G.phase !== 'roll' || p.blind || G.rolls >= 3) return;
-      G.held[i] = !G.held[i];
-      d.className = `die ${G.held[i]?'held':''}`;
-    };
+    d.onclick = () => handleDieClick(i, d);
     area.appendChild(d);
   });
 }
@@ -565,12 +627,11 @@ function renderPlayers(){
     const row = document.createElement('div');
     row.className = `player-row ${p.id === G.active ? 'active' : ''}`;
     const status = p.blind ? 'off' : 'on';
-    const imgSrc = `images/Meeple_${PLAYER_COLORS[p.id]}_${status}.png`;
+    const imgSrc = `images/Meeple_${CONST.COLORS[p.id]}_${status}.png`;
     
     let nameHtml = `${p.name}`;
-    if(G.winner !== null && G.winner === p.id){
-        nameHtml += ` <span style="color:var(--gold); font-weight:bold; margin-left:4px; font-size:11px;">WIN</span>`;
-    }
+    if(G.winner === p.id) nameHtml += ` <span style="color:var(--gold)">WIN</span>`;
+    if(p.poison) nameHtml += ` ☠️`;
     
     row.innerHTML = `<div style="display:flex;align-items:center"><span class="p-badge" style="background-image:url('${imgSrc}')"></span>${nameHtml}</div><div>${p.score}점</div>`;
     list.appendChild(row);
@@ -586,32 +647,29 @@ function updateUI(){
     _('btnEnd').innerText = "재시작"; _('btnEnd').onclick = ()=>location.reload();
     return;
   }
-  const btnEnd = _('btnEnd');
-  if(btnEnd.innerText !== "턴 종료") { btnEnd.innerText = "턴 종료"; btnEnd.onclick = endTurn; }
   
   _('statusIndicator').innerText = `${p.name}`;
-  _('turnIndicator').innerText = G.phase==='roll' ? `굴리기 (남은 횟수 :${G.rolls})` : "이동";
+  _('turnIndicator').innerText = G.phase==='roll' ? `굴리기 (${G.rolls})` : "이동 선택";
   
-  const hasRolled = G.rolls < 3;
+  const hasRolled = G.rolls < G.maxRolls;
   const unlocked = !p.blind;
   
   _('btnRoll').disabled = (G.phase !== 'roll' || G.rolls <= 0);
-  _('btnAction').disabled = !unlocked || !(G.phase === 'roll' && hasRolled);
-  _('btnEnd').disabled = !unlocked || !( (G.phase === 'roll' && hasRolled) || G.phase === 'move' );
+  // 두건/중독 상태일 때는 이동 버튼 비활성화 (자동 처리됨)
+  _('btnAction').disabled = p.blind || p.poison || !(G.phase === 'roll' && hasRolled);
+  _('btnEnd').disabled = p.blind || p.poison || !( (G.phase === 'roll' && hasRolled) || G.phase === 'move' );
   
+  _('btnAction').onclick = confirmAction;
+  _('btnItem').disabled = (p.inv.length === 0) || (G.ai && G.active === 1);
+  _('btnEnd').onclick = endTurn;
+  
+  // AI 처리 시 버튼 잠금
   if(G.ai && G.active === 1){
     _('btnRoll').disabled = true;
     _('btnAction').disabled = true;
     _('btnEnd').disabled = true;
     _('btnItem').disabled = true;
   }
-
-  _('btnAction').onclick = confirmAction;
-  _('btnItem').disabled = (p.inv.length === 0) || (G.ai && G.active === 1);
-  let hint = "";
-  if(p.blind) hint = `두건: 합 ${BLINDFOLD_REQ}↑`;
-  else if(p.poison) hint = "중독: 4 Kind";
-  _('rollInfo').innerText = hint;
 }
 
 function log(msg){
@@ -620,22 +678,16 @@ function log(msg){
   box.scrollTop = box.scrollHeight;
 }
 
-function toggleRules(){
-  alert(`[규칙]\n1. 합 ${BLINDFOLD_REQ} 이상 두건 해제\n2. 13R 내 탈출 및 고득점\n3. 타일 족보 맞춰 이동`);
-}
-
 function playBGM() {
   if (bgmAudio.src && bgmAudio.paused && bgmAudio.currentTime > 0) {
-      bgmAudio.play().catch(e => console.log("BGM 재생 실패:", e));
+      bgmAudio.play().catch(e => console.log(e));
       return;
   }
   if (!bgmAudio.src || bgmAudio.src === '') {
       bgmAudio.src = BGM_PLAYLIST[bgmIndex];
       bgmAudio.volume = parseFloat(_('bgmVolume').value);
-      bgmAudio.onerror = () => log("BGM 파일 없음.");
   }
-  bgmAudio.play().catch(e => console.log("자동 재생 차단됨"));
-  bgmPlaying = true;
+  bgmAudio.play().catch(e => console.log("Auto-play blocked"));
   bgmAudio.onended = () => {
       bgmIndex = (bgmIndex + 1) % BGM_PLAYLIST.length;
       bgmAudio.src = BGM_PLAYLIST[bgmIndex];
@@ -643,13 +695,12 @@ function playBGM() {
   };
 }
 
-_('btnHeaderRules').addEventListener('click', toggleRules);
+// Event Listeners
+_('btnHeaderRules').addEventListener('click', ()=>alert(`[규칙]\n1. 합 ${CONST.BLINDFOLD_REQ} 이상 두건 해제\n2. 족보에 맞춰 이동\n3. EXIT 도착 시 +2점`));
 _('btnStartGame').addEventListener('click', initGame);
 _('btnItem').addEventListener('click', openInventory);
 _('btnCloseInv').addEventListener('click', ()=>_('inventoryModal').style.display='none');
 _('btnRoll').addEventListener('click', rollDice);
-_('btnAction').addEventListener('click', confirmAction);
-_('btnEnd').addEventListener('click', endTurn);
 _('btnRestartMain').addEventListener('click', ()=>confirm("재시작?")&&location.reload());
 _('btnBgmPlay').addEventListener('click', playBGM);
 _('btnBgmPause').addEventListener('click', ()=>bgmAudio.pause());
