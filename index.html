@@ -29,10 +29,18 @@
     </div>
 
     <div class="ctrl-panel">
+      <div id="gameCoach" class="coach-bubble">
+        <span id="coachText">주사위를 굴려 모험을 시작하세요!</span>
+        <button id="btnCloseCoach" class="btn-coach-close" title="도움말 끄기">x</button>
+      </div>
+
       <div class="card main-control">
         <div class="turn-header">
-          <span id="turnIndicator">게임 준비</span>
-          <span id="statusIndicator"></span>
+             <div style="display:flex; gap:5px; align-items:center;">
+                <span id="turnIndicator">게임 준비</span>
+                <button id="btnHelpToggle" class="btn-help-toggle" style="display:none;">?</button>
+             </div>
+             <span id="statusIndicator"></span>
         </div>
         
         <div class="dice-wrapper">

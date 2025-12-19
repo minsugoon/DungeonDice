@@ -1,6 +1,6 @@
 /**
  * Dungeon Dice Main Logic
- * PDF Rule Implementation - Intro Music Patch
+ * PDF Rule Implementation - Coach System Patch
  */
 import { CONST, MAP_TILES_CONFIG, EXIT_POOL, DECK_ACTION_DEF, DECK_CHANCE_DEF, DECK_ITEM_DEF, BGM_PLAYLIST } from './data.js';
 import { _, rand, checkMatch, formatReq, buildDecks } from './utils.js';
@@ -16,17 +16,18 @@ let G = {
   fixDiceMode: false, 
   changeDiceMode: false,
   lastStandMode: false, 
-  lastStandCount: 0 
+  lastStandCount: 0,
+  guideMode: true // [신규] 가이드 모드 상태
 };
 
 // 오디오 객체
 let bgmAudio = new Audio();
 let bgmIndex = 0;
 
-// [신규] 인트로 음악 객체 생성
+// 인트로 음악 객체
 let introAudio = new Audio('music/GameIntro.mp3');
-introAudio.loop = true; // 반복 재생 설정
-introAudio.volume = 0.6; // 적절한 기본 볼륨
+introAudio.loop = true; 
+introAudio.volume = 0.6; 
 
 // --- 초기화 및 설정 ---
 
@@ -83,13 +84,12 @@ function initGame(){
   _('setupModal').style.display = 'none';
   _('storyModal').style.display = 'flex'; 
   
-  // [신규] 인트로 음악 재생 (사용자 인터랙션 직후라 재생 가능)
   introAudio.play().catch(e => console.log("인트로 음악 재생 실패:", e));
+  
+  updateCoach(); // [신규] 코치 업데이트
 }
 
-// [수정] 던전 입장 (게임 시작)
 function enterDungeon() {
-  // [신규] 인트로 음악 정지
   introAudio.pause();
   introAudio.currentTime = 0;
 
@@ -103,9 +103,55 @@ function enterDungeon() {
   log(`게임 시작! 두건을 해제하세요 (합 ${CONST.BLINDFOLD_REQ}↑)`);
   
   startTurn(0);
-  
-  // 메인 BGM 재생
   playBGM();
+}
+
+// --- 코치 시스템 (신규 기능) ---
+
+function updateCoach(){
+    if(!G.guideMode) return;
+    
+    const p = G.players[G.active];
+    // 게임 시작 전이면 리턴
+    if(!p) return;
+
+    const coach = _('coachText');
+    const rolls = G.rolls;
+    
+    // 1. AI 턴
+    if(G.ai && G.active === 1) {
+        coach.innerText = "AI가 전략을 고민 중입니다...";
+        return;
+    }
+
+    // 2. 특수 상태 (중독/두건)
+    if(p.poison) {
+        coach.innerHTML = "☠️독에 걸렸습니다! <b>같은 숫자 4개(4 Kind)</b> 이상을 노려 해독하세요!";
+        return;
+    }
+    if(p.blind) {
+        if(rolls === 3) coach.innerText = "🕶️앞이 안 보입니다. 합 15 이상을 목표로 굴리세요!";
+        else coach.innerText = "높은 숫자인 주사위는 남기고(Hold), 나머지는 다시 굴리세요!";
+        return;
+    }
+
+    // 3. 일반 진행 단계
+    if (G.phase === 'roll') {
+        if (rolls === 3) {
+            coach.innerText = "🚩 당신의 턴입니다! [굴리기] 버튼을 눌러주세요.";
+        } else if (rolls > 0) {
+            // 족보 힌트
+            if(checkMatch('yacht', G.dice)) coach.innerHTML = "✨와우! <b>요트(같은 숫자 5개)</b>입니다! 어디든 갈 수 있어요!";
+            else if(checkMatch('fourKind', G.dice)) coach.innerHTML = "🔥4개가 같습니다! 이동하거나 <b>요트</b>를 노려보세요.";
+            else if(checkMatch('fullHouse', G.dice)) coach.innerHTML = "🏠풀하우스! 이동 조건을 만족했습니다.";
+            else coach.innerText = "원하는 주사위를 클릭해 잠그고(Hold), 다시 굴려보세요.";
+        } else {
+            // 굴림 횟수 소진
+            coach.innerText = "✋굴림 횟수 끝! 이동할 타일을 선택하거나, 갈 곳이 없으면 턴을 종료하세요.";
+        }
+    } else if (G.phase === 'move') {
+        coach.innerHTML = "✨반짝이는 <b>타일</b>을 클릭하여 이동하세요.";
+    }
 }
 
 // --- 턴 진행 로직 ---
@@ -139,7 +185,7 @@ function startTurn(pid){
   renderDice(); 
   renderBoard(); 
   renderPlayers(); 
-  updateUI();
+  updateUI(); // updateCoach 포함됨
   
   if(p.poison){
     log(`<span style="color:#ff6b6b">${p.name}: ☠️중독됨! (해독: 4 Kind/Yacht)</span>`);
@@ -179,7 +225,7 @@ function rollDice(){
     dies.forEach(d=>d.classList.remove('rolling'));
     renderDice();
     checkStatusEffects(); 
-    updateUI();
+    updateUI(); // updateCoach 포함됨
     renderBoard();
     
     const p = G.players[G.active];
@@ -237,7 +283,7 @@ function confirmAction(){
     G.phase = 'move';
     log("이동할 타일을 선택하세요.");
     renderBoard(); 
-    updateUI();
+    updateUI(); // updateCoach 포함됨
   }
 }
 
@@ -506,6 +552,9 @@ function handleDieClick(index, element){
     if(G.phase !== 'roll' || p.blind || G.rolls >= 3) return;
     G.held[index] = !G.held[index];
     element.className = `die ${G.held[index]?'held':''}`;
+    
+    // [신규] 주사위 홀드 시 코치 업데이트
+    updateCoach();
 }
 
 // --- 시스템 및 렌더링 ---
@@ -683,6 +732,9 @@ function updateUI(){
     _('btnEnd').disabled = true;
     _('btnItem').disabled = true;
   }
+
+  // [신규] 코치 업데이트
+  updateCoach();
 }
 
 function log(msg){
@@ -708,12 +760,11 @@ function playBGM() {
   };
 }
 
-// [신규] 룰북 모달 제어 함수
+// 룰북 모달 제어 함수
 function openRules() { _('ruleModal').style.display = 'flex'; }
 function closeRules() { _('ruleModal').style.display = 'none'; }
 
 // Event Listeners
-// _('btnHeaderRules').addEventListener('click', ()=>alert(`[규칙]\n1. 합 ${CONST.BLINDFOLD_REQ} 이상 두건 해제\n2. 족보에 맞춰 이동 (일반 우선)\n3. 매칭 없을 시 찬스 이동 (강제)\n4. EXIT 도착 시 +2점`));
 _('btnStartGame').addEventListener('click', initGame);
 _('btnItem').addEventListener('click', openInventory);
 _('btnCloseInv').addEventListener('click', ()=>_('inventoryModal').style.display='none');
@@ -725,6 +776,19 @@ _('bgmVolume').addEventListener('input', function(){ bgmAudio.volume=this.value;
 
 _('btnEnterDungeon').addEventListener('click', enterDungeon);
 _('btnSkipStory').addEventListener('click', enterDungeon);
-_('btnHeaderRules').addEventListener('click', openRules);      // 헤더 '룰북' 버튼
-_('btnCloseRulesTop').addEventListener('click', closeRules);   // 모달 상단 X 버튼
-_('btnCloseRulesBottom').addEventListener('click', closeRules);// 모달 하단 닫기 버튼
+_('btnHeaderRules').addEventListener('click', openRules);      
+_('btnCloseRulesTop').addEventListener('click', closeRules);   
+_('btnCloseRulesBottom').addEventListener('click', closeRules);
+
+// [신규] 코치 닫기/켜기 버튼
+_('btnCloseCoach').addEventListener('click', () => {
+    G.guideMode = false;
+    _('gameCoach').classList.add('hidden');
+    _('btnHelpToggle').style.display = 'inline-block';
+});
+_('btnHelpToggle').addEventListener('click', () => {
+    G.guideMode = true;
+    _('gameCoach').classList.remove('hidden');
+    _('btnHelpToggle').style.display = 'none';
+    updateCoach();
+});
