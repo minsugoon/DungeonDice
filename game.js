@@ -708,8 +708,12 @@ function playBGM() {
   };
 }
 
+// [신규] 룰북 모달 제어 함수
+function openRules() { _('ruleModal').style.display = 'flex'; }
+function closeRules() { _('ruleModal').style.display = 'none'; }
+
 // Event Listeners
-_('btnHeaderRules').addEventListener('click', ()=>alert(`[규칙]\n1. 합 ${CONST.BLINDFOLD_REQ} 이상 두건 해제\n2. 족보에 맞춰 이동 (일반 우선)\n3. 매칭 없을 시 찬스 이동 (강제)\n4. EXIT 도착 시 +2점`));
+// _('btnHeaderRules').addEventListener('click', ()=>alert(`[규칙]\n1. 합 ${CONST.BLINDFOLD_REQ} 이상 두건 해제\n2. 족보에 맞춰 이동 (일반 우선)\n3. 매칭 없을 시 찬스 이동 (강제)\n4. EXIT 도착 시 +2점`));
 _('btnStartGame').addEventListener('click', initGame);
 _('btnItem').addEventListener('click', openInventory);
 _('btnCloseInv').addEventListener('click', ()=>_('inventoryModal').style.display='none');
@@ -721,3 +725,6 @@ _('bgmVolume').addEventListener('input', function(){ bgmAudio.volume=this.value;
 
 _('btnEnterDungeon').addEventListener('click', enterDungeon);
 _('btnSkipStory').addEventListener('click', enterDungeon);
+_('btnHeaderRules').addEventListener('click', openRules);      // 헤더 '룰북' 버튼
+_('btnCloseRulesTop').addEventListener('click', closeRules);   // 모달 상단 X 버튼
+_('btnCloseRulesBottom').addEventListener('click', closeRules);// 모달 하단 닫기 버튼

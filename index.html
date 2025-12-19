@@ -115,7 +115,6 @@
   </div>
 </div>
 
-
 <div class="modal-overlay" id="cardModal">
   <div class="modal">
     <h3 id="cardType">카드 획득</h3>
@@ -133,6 +132,122 @@
     <h3>인벤토리</h3>
     <div id="invList" class="inv-list-box"></div>
     <button id="btnCloseInv" class="full-width">닫기</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ruleModal" style="display:none;">
+  <div class="modal rule-modal-content">
+    <div class="rule-header">
+      <h2>📜 던전 다이스 룰북</h2>
+      <button id="btnCloseRulesTop" class="btn-close-x">✖</button>
+    </div>
+    
+    <div class="rule-body">
+      <section>
+        <h3 class="rule-sect-title">🎲 던전 다이스(Dungeon Dice) 규칙 요약</h3>
+        
+        <h4 class="sub-title" style="color:#ffd700; margin-top:10px;">1. 게임 목표</h4>
+        <p style="font-size:14px; line-height:1.6; color:#e0e0e0; margin-bottom:15px;">
+          주사위 족보를 완성해 맵을 이동하고, 다양한 카드로 점수를 획득하여 <b>가장 높은 점수로 탈출</b>하는 것이 목표입니다.
+        </p>
+
+        <h4 class="sub-title" style="color:#ffd700;">2. 게임 진행</h4>
+        <ul class="rule-summary-list">
+          <li>
+            <strong>🕶️ 두건 해제 (1라운드~):</strong> 모든 플레이어는 앞이 보이지 않는 상태로 시작합니다.<br>
+            주사위 5개를 굴려 <b>합이 15 이상</b> 나와야 두건을 벗고 이동할 수 있습니다.
+          </li>
+          <li style="margin-top:8px;">
+            <strong>🎲 이동 (야추 규칙):</strong> 주사위 5개를 최대 3회 굴려(Hold 가능), 상하좌우 인접한 타일의 <b>조건(예: 같은 숫자 3개, 합 25 이상 등)</b>을 만족하면 이동합니다.
+          </li>
+          <li style="margin-top:4px; color:#aaa; font-size:13px;">
+            ※ 조건이 맞는 일반 타일이 없으면 <b>'찬스 타일'</b>로 이동해야 하며, 둘 다 없으면 턴이 종료됩니다.
+          </li>
+          <li style="margin-top:8px;">
+            <strong>🃏 카드 이벤트:</strong> 도착한 타일에 따라 액션/아이템/찬스 카드를 획득합니다.<br> 
+            카드에 적힌 방어 조건(주사위 굴림)에 <b>성공하면 점수나 아이템</b>을 얻고, 실패하면 후퇴하거나 감점됩니다.
+          </li>
+        </ul>
+
+        <h4 class="sub-title" style="color:#ffd700;">3. 종료 및 승리</h4>
+        <ul class="rule-summary-list">
+          <li>누군가 모서리의 <b>EXIT 타일</b>에 도착하면(탈출 +2점), 나머지 플레이어는 <b>마지막 1턴씩</b>을 진행하고 게임이 종료됩니다. (최대 13라운드 제한)</li>
+          <li>최종적으로 <b>가장 높은 점수</b>를 획득한 플레이어가 승리합니다.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 class="rule-sect-title">🗺️ 2. 타일 정보</h3>
+        <h4 class="sub-title">던전 타일 (일반)</h4>
+        <table class="rule-table">
+          <thead><tr><th>타일명</th><th>조건 (족보)</th><th>효과</th></tr></thead>
+          <tbody>
+            <tr><td>트리플</td><td>같은 수 3개</td><td>-</td></tr>
+            <tr><td>찬스</td><td>매칭 없음 (필수)</td><td>찬스 카드</td></tr>
+            <tr><td>주사위 [N]</td><td>해당 숫자 포함</td><td>-</td></tr>
+            <tr><td>포카드</td><td>같은 수 4개</td><td>액션 카드</td></tr>
+            <tr><td>풀하우스</td><td>3개+2개 동일</td><td>액션 카드</td></tr>
+            <tr><td>스트레이트</td><td>4/5연속 숫자</td><td>액션 카드</td></tr>
+            <tr><td>합 25↑/7↓</td><td>합 25이상 / 7이하</td><td>액션 카드</td></tr>
+            <tr><td>야추</td><td>같은 수 5개</td><td>아이템 카드</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="sub-title">EXIT 타일 (탈출구)</h4>
+        <table class="rule-table">
+          <thead><tr><th>타일명</th><th>조건</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td>풀하우스</td><td>3개+2개 동일</td><td>표준 난이도</td></tr>
+            <tr><td>합 15</td><td>정확히 15</td><td>어려움</td></tr>
+            <tr><td>홀/짝수</td><td>모두 홀수/짝수</td><td>어려움</td></tr>
+            <tr><td>5연속</td><td>1~5 or 2~6</td><td>매우 어려움</td></tr>
+            <tr><td>야추</td><td>같은 수 5개</td><td>극악</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3 class="rule-sect-title">🃏 3. 카드 도감</h3>
+        
+        <h4 class="sub-title">⚔️ 액션 카드 (방어 굴림 1회)</h4>
+        <table class="rule-table small-text">
+          <thead><tr><th>이름</th><th>방어 조건</th><th>성공 / 실패</th></tr></thead>
+          <tbody>
+            <tr><td>금괴/미믹</td><td>합 15↑</td><td>+1점 / 후퇴</td></tr>
+            <tr><td>슬라임/함정</td><td>3 Kind</td><td>+1점 / 후퇴 or 감점</td></tr>
+            <tr><td>박쥐/고블린</td><td>4 Kind/합25↑</td><td>+2점 / 후퇴 or 감점</td></tr>
+            <tr><td>해골 병사</td><td>합 25↑</td><td>+2점 / -4점</td></tr>
+            <tr><td>킹 코브라</td><td>합 7↓</td><td><b>카드획득</b> / 시작점 이동</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="sub-title">🍀 찬스 카드 (리롤 불가)</h4>
+        <table class="rule-table small-text">
+          <thead><tr><th>이름</th><th>성공 조건</th><th>성공 / 실패</th></tr></thead>
+          <tbody>
+            <tr><td>안전한 길</td><td>합 15~18</td><td>0점 / 후퇴</td></tr>
+            <tr><td>강력한 한방</td><td>합 20↑</td><td>+1점 / -1점</td></tr>
+            <tr><td>바늘 구멍</td><td>합 8↓</td><td>+1점 / -2점</td></tr>
+            <tr><td>축복(홀/짝)</td><td>모두 홀/짝</td><td>+2점 / 시작점 이동</td></tr>
+            <tr><td>덫/고블린</td><td>모두 4↑/3↓</td><td>+2점 / 시작점 이동</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="sub-title">🎒 아이템 카드 (획득 시도)</h4>
+        <table class="rule-table small-text">
+          <thead><tr><th>이름</th><th>획득 조건</th><th>사용 효과</th></tr></thead>
+          <tbody>
+            <tr><td>모래시계</td><td>모두 짝수</td><td>굴림 기회 +1회</td></tr>
+            <tr><td>요정가루</td><td>모두 홀수</td><td>주사위 1개 리롤</td></tr>
+            <tr><td>수정구</td><td>모두 4↑</td><td>주사위 3개 미리 고정</td></tr>
+            <tr><td>트릭스터</td><td>모두 2↓</td><td>주사위 1개 눈 변경</td></tr>
+            <tr><td>해독제</td><td>4 Kind</td><td>중독 즉시 치료</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    
+    <button id="btnCloseRulesBottom" class="primary full-width" style="margin-top:15px;">닫기</button>
   </div>
 </div>
 
