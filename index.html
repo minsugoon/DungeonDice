@@ -81,6 +81,7 @@
 
 <div class="modal-overlay" id="setupModal" style="display:flex;">
   <div class="modal">
+    <img src="images/game_logo.png" alt="던전 다이스 로고" class="start-page-logo">
     <h2 style="color:var(--gold)">게임 설정</h2>
     <div class="option-list">
       <label class="radio-box"><input type="radio" name="pCount" value="2" checked> 2인</label>
@@ -92,6 +93,28 @@
     <button id="btnStartGame" class="primary full-width">게임 시작</button>
   </div>
 </div>
+
+<div class="modal-overlay" id="storyModal" style="display:none;">
+  <div class="story-container">
+    <div class="story-text-box">
+      <h2 class="story-title">SYNOPSIS</h2>
+      <p class="story-desc">
+        마왕의 보물을 훔치러 온 4명의 도둑, 하지만 모두 발각되어 붙잡혔다.<br><br>
+        도둑들의 머리에는 두건이 씌워져 앞이 보이지 않고, 손은 뒤로 결박된 채 큰 방 한 곳으로 모두 끌려왔다.<br><br>
+        <span class="highlight">"암흑으로 떨어진 너희들 중 살아 온 놈은 살려주마!"</span><br><br>
+        마왕의 외침과 함께 바닥이 열렸고, 잡혀 온 4명의 도둑은 순식간에 아래로 사라졌다.<br><br>
+        시간이 흘러 바닥으로 떨어진 도둑들은 정신을 차렸지만 눈은 가려져 보이지 않고, 
+        차가운 공기와 비릿한 냄새가 가득 찬 이곳이 어디인지 몰랐지만, <br>
+        <b>도둑들은 살기 위해 움직였다.</b>
+      </p>
+    </div>
+    <div class="story-controls">
+      <button id="btnEnterDungeon" class="btn-story-main">⚔️ 던전으로 이동</button>
+      <button id="btnSkipStory" class="btn-story-skip">SKIP ▶</button>
+    </div>
+  </div>
+</div>
+
 
 <div class="modal-overlay" id="cardModal">
   <div class="modal">

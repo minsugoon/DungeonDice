@@ -1,6 +1,6 @@
 /**
  * Dungeon Dice Main Logic
- * PDF Rule Implementation - Chance & Move Priority Patch
+ * PDF Rule Implementation - Intro Music Patch
  */
 import { CONST, MAP_TILES_CONFIG, EXIT_POOL, DECK_ACTION_DEF, DECK_CHANCE_DEF, DECK_ITEM_DEF, BGM_PLAYLIST } from './data.js';
 import { _, rand, checkMatch, formatReq, buildDecks } from './utils.js';
@@ -19,8 +19,14 @@ let G = {
   lastStandCount: 0 
 };
 
+// 오디오 객체
 let bgmAudio = new Audio();
 let bgmIndex = 0;
+
+// [신규] 인트로 음악 객체 생성
+let introAudio = new Audio('music/GameIntro.mp3');
+introAudio.loop = true; // 반복 재생 설정
+introAudio.volume = 0.6; // 적절한 기본 볼륨
 
 // --- 초기화 및 설정 ---
 
@@ -29,6 +35,7 @@ function initGame(){
   G.ai = _('aiMode').checked;
   const pCount = parseInt(pc);
   
+  // 데이터 초기화
   G.players = [];
   G.winner = null;
   G.round = 1;
@@ -67,19 +74,37 @@ function initGame(){
     if(!G.board[i]) G.board[i] = {cat:tiles[tIdx++], isExit:false};
   }
 
+  // 덱 생성
   G.decks.action = buildDecks(DECK_ACTION_DEF);
   G.decks.chance = buildDecks(DECK_CHANCE_DEF);
   G.decks.item = buildDecks(DECK_ITEM_DEF);
 
+  // 화면 전환 및 인트로 음악 재생
+  _('setupModal').style.display = 'none';
+  _('storyModal').style.display = 'flex'; 
+  
+  // [신규] 인트로 음악 재생 (사용자 인터랙션 직후라 재생 가능)
+  introAudio.play().catch(e => console.log("인트로 음악 재생 실패:", e));
+}
+
+// [수정] 던전 입장 (게임 시작)
+function enterDungeon() {
+  // [신규] 인트로 음악 정지
+  introAudio.pause();
+  introAudio.currentTime = 0;
+
+  _('storyModal').style.display = 'none';
+  
   renderBoard();
   renderPlayers();
   
-  _('setupModal').style.display = 'none';
   _('gameLog').innerHTML = '';
   _('roundDisp').innerText = `R 1 / ${CONST.MAX_ROUNDS}`;
   log(`게임 시작! 두건을 해제하세요 (합 ${CONST.BLINDFOLD_REQ}↑)`);
   
   startTurn(0);
+  
+  // 메인 BGM 재생
   playBGM();
 }
 
@@ -198,13 +223,12 @@ function checkStatusEffects(){
   }
 }
 
-// --- 이동 로직 (핵심 수정 부분) ---
+// --- 이동 로직 ---
 
 function confirmAction(){
   const p = G.players[G.active];
   if(p.blind || p.poison) { return; } 
   
-  // [규칙 51] 이동 가능한 곳이 없으면 턴 종료
   const moves = getValidMoves(p.x, p.y);
   if(moves.length === 0){
     log("이동 가능한 타일이 없어 턴을 종료합니다.");
@@ -212,47 +236,32 @@ function confirmAction(){
   } else {
     G.phase = 'move';
     log("이동할 타일을 선택하세요.");
-    renderBoard(); // 하이라이트 표시
+    renderBoard(); 
     updateUI();
   }
 }
 
-/**
- * [규칙 구현] 이동 가능한 타일 계산
- * 1. 상하좌우 인접 (대각선 불가) [cite: 46, 53]
- * 2. 점유 인원 제한 체크 (이동 불가) [cite: 49]
- * 3. 족보 매칭 체크
- * 4. 우선순위 적용:
- * - 일반 타일 매칭이 하나라도 있으면 찬스 타일은 선택 불가 
- * - 일반 매칭이 없고 찬스 타일만 가능하면 반드시 찬스 이동 (패스 불가) 
- */
 function getValidMoves(cx, cy){
-  // 주사위를 굴리지 않았으면 이동 불가
   if (G.rolls === G.maxRolls) return []; 
 
-  const neighbors = [[0,-1],[0,1],[-1,0],[1,0]]; // 상, 하, 좌, 우
+  const neighbors = [[0,-1],[0,1],[-1,0],[1,0]]; 
   const normalMoves = [];
   const chanceMoves = [];
   
   neighbors.forEach(([dx,dy])=>{
     const nx = cx+dx, ny = cy+dy;
-    // 맵 범위 체크
     if(nx<0||nx>4||ny<0||ny>4) return;
     
     const idx = ny*5 + nx;
     const tile = G.board[idx];
     
-    // 점유 인원 체크
     const occupants = G.players.filter(p=>!p.escaped && !p.failed && p.x===nx && p.y===ny).length;
-    const limit = (G.players.length === 2) ? 1 : 2; // [cite: 61, 62, 63]
+    const limit = (G.players.length === 2) ? 1 : 2; 
     
-    // START 타일(12번) 예외: 1라운드 재진입 아닐 땐 제한 없음 [cite: 33, 34]
-    // 하지만 여기선 단순화를 위해 1라운드 START 제외하고 모두 제한 적용
     const isStartR1 = (idx === 12 && G.round === 1);
     
-    if(!isStartR1 && occupants >= limit) return; // 인원 꽉 차면 이동 불가 [cite: 49]
+    if(!isStartR1 && occupants >= limit) return; 
 
-    // 족보 매칭 체크
     if(checkMatch(tile.cat, G.dice)) {
         if(tile.cat === 'chance') {
             chanceMoves.push(idx);
@@ -262,17 +271,9 @@ function getValidMoves(cx, cy){
     }
   });
 
-  // [규칙 94] 일반 매칭이 있으면 찬스는 활성화되지 않음 -> 일반 타일만 리턴
-  if(normalMoves.length > 0) {
-      return normalMoves;
-  }
-  
-  // [규칙 50] 일반 매칭이 없고, 찬스 타일이 있으면 반드시 이동
-  if(chanceMoves.length > 0) {
-      return chanceMoves;
-  }
+  if(normalMoves.length > 0) return normalMoves;
+  if(chanceMoves.length > 0) return chanceMoves;
 
-  // [규칙 51] 둘 다 없으면 이동 불가 (빈 배열 리턴 -> confirmAction에서 턴 종료 처리)
   return [];
 }
 
@@ -280,7 +281,6 @@ function movePlayer(idx){
   if(G.phase !== 'move') return;
   const p = G.players[G.active];
   
-  // 유효성 검증 (해킹 방지 및 UI 동기화)
   if(!getValidMoves(p.x,p.y).includes(idx)) return;
   
   p.prevIdx = p.y*5 + p.x;
@@ -414,6 +414,8 @@ function resolveCardRoll(card, type){
   
   if(G.ai && G.active===1) setTimeout(()=>btn.click(), 1500);
 }
+
+// --- 유틸리티 및 아이템 사용 ---
 
 function moveBack(p){ 
     p.x = p.prevIdx%5; p.y = Math.floor(p.prevIdx/5); 
@@ -565,7 +567,6 @@ function aiPlay(){
         return; 
     }
     
-    // AI도 동일한 규칙 적용 (getValidMoves 활용)
     const moves = getValidMoves(p.x, p.y);
     
     if(moves.length > 0){
@@ -599,7 +600,6 @@ function renderBoard(){
   const board = _('board');
   board.innerHTML = '';
   const p = G.players[G.active];
-  // 이동 가능 타일 계산 (렌더링 시에도 동일 로직 적용하여 하이라이트)
   const moves = (G.phase==='move') ? getValidMoves(p.x,p.y) : [];
 
   G.board.forEach((t, i) => {
@@ -718,3 +718,6 @@ _('btnRestartMain').addEventListener('click', ()=>confirm("재시작?")&&locatio
 _('btnBgmPlay').addEventListener('click', playBGM);
 _('btnBgmPause').addEventListener('click', ()=>bgmAudio.pause());
 _('bgmVolume').addEventListener('input', function(){ bgmAudio.volume=this.value; });
+
+_('btnEnterDungeon').addEventListener('click', enterDungeon);
+_('btnSkipStory').addEventListener('click', enterDungeon);
