@@ -635,16 +635,55 @@ function aiPlay(){
   }
 }
 
-// Helper: Tile Texts
+// [수정] 타일 이름 한글화 함수
 function getTileTexts(cat) {
   switch(cat){
     case 'start': return {t:'START', s:''};
     case 'yacht': return {t:'요트', s:'아이템'}; 
-    case 'chance': return {t:'Chance', s:'카드'};
+    case 'chance': return {t:'찬스카드', s:'카드'}; // Chance -> 찬스카드
+    case 'threeKind': return {t:'트리플', s:''};    // 3Kind -> 트리플
+    case 'fourKind': return {t:'포카드', s:'액션'}; // 4Kind -> 포카드
+    case 'fullHouse': return {t:'풀하우스', s:'액션'};
+    case 'smallStr': return {t:'4연속 숫자', s:'액션'}; // smallStr -> 4연속 숫자
+    case 'largeStr': return {t:'5연속 숫자', s:'액션'}; // largeStr -> 5연속 숫자
+    case 'sum25': return {t:'합 25↑', s:'액션'};
+    case 'sum7': return {t:'합 7↓', s:'액션'};
+    case 'sum8': return {t:'합 8↓', s:'액션'}; // 찬스 카드용 조건 등
+    case 'sum15': return {t:'합 15', s:''}; // EXIT 타일용
+    case 'sum15_18': return {t:'합 15~18', s:''};
+    case 'allEven': return {t:'모두 짝수', s:'액션'};
+    case 'allOdd': return {t:'모두 홀수', s:'액션'};
+    case 'trapLow': return {t:'주사위 1,2', s:''};
+    case 'trapMid': return {t:'주사위 3,4', s:''};
+    case 'trapHigh': return {t:'주사위 5,6', s:''};
     default: return {t: formatReq(cat), s: ''};
   }
 }
 
+// [신규] 마우스 오버 시 보여줄 툴팁 텍스트 생성 함수
+function getTileTooltip(cat) {
+  switch(cat){
+    case 'start': return "시작 지점입니다.";
+    case 'yacht': return "조건: 같은 숫자 5개\n효과: 아이템 카드 획득";
+    case 'chance': return "조건: 일반 이동 불가 시 강제 이동\n효과: 찬스 카드 1장 획득 (리롤 불가 굴림)";
+    case 'threeKind': return "조건: 같은 숫자 3개 이상\n효과: 이동 완료 (추가 효과 없음)";
+    case 'fourKind': return "조건: 같은 숫자 4개 이상\n효과: 액션 카드 1장 획득 (방어 굴림)";
+    case 'fullHouse': return "조건: 같은 숫자 3개 + 2개\n효과: 액션 카드 1장 획득";
+    case 'smallStr': return "조건: 연속된 숫자 4개 (예: 1-2-3-4)\n효과: 액션 카드 1장 획득";
+    case 'largeStr': return "조건: 연속된 숫자 5개 (예: 2-3-4-5-6)\n효과: 액션 카드 1장 획득";
+    case 'sum25': return "조건: 주사위 합 25 이상\n효과: 액션 카드 1장 획득";
+    case 'sum7': return "조건: 주사위 합 7 이하\n효과: 액션 카드 1장 획득";
+    case 'allEven': return "조건: 모든 주사위가 짝수\n효과: 액션 카드 1장 획득";
+    case 'allOdd': return "조건: 모든 주사위가 홀수\n효과: 액션 카드 1장 획득";
+    case 'sum15': return "조건: 주사위 합 정확히 15\n효과: 없음 (EXIT 전용)";
+    case 'trapLow': return "조건: 1 또는 2 포함\n효과: 이동 완료";
+    case 'trapMid': return "조건: 3 또는 4 포함\n효과: 이동 완료";
+    case 'trapHigh': return "조건: 5 또는 6 포함\n효과: 이동 완료";
+    default: return "조건: " + formatReq(cat);
+  }
+}
+
+// [수정] renderBoard 함수 (커스텀 툴팁 적용)
 function renderBoard(){
   const board = _('board');
   board.innerHTML = '';
@@ -654,13 +693,53 @@ function renderBoard(){
   G.board.forEach((t, i) => {
     const el = document.createElement('div');
     el.className = `tile ${t.cat === 'start' ? 'start' : ''} ${t.isExit ? 'exit' : ''}`;
-    if(moves.includes(i)) { el.classList.add('movable'); el.onclick = () => movePlayer(i); }
+    
+    // [기존] el.title = getTileTooltip(t.cat); -> 제거 또는 유지(PC용 보조)
+    // 모바일 겸용 커스텀 툴팁 추가
+    const tooltipText = getTileTooltip(t.cat);
+    
+    // 툴팁 요소 생성
+    const tt = document.createElement('div');
+    tt.className = 'custom-tooltip';
+    tt.innerText = (t.isExit ? "[탈출구] " : "") + tooltipText;
+    el.appendChild(tt);
+
+    // [이동 가능한 타일일 때] -> 클릭 시 이동
+    if(moves.includes(i)) { 
+        el.classList.add('movable'); 
+        el.onclick = (e) => {
+            e.stopPropagation(); // 툴팁 이벤트 전파 방지
+            movePlayer(i);
+        };
+    } 
+    // [이동 불가능한 타일일 때] -> 클릭 시 툴팁 토글
+    else {
+        el.onclick = (e) => {
+            e.stopPropagation();
+            // 다른 열린 툴팁 모두 닫기
+            document.querySelectorAll('.custom-tooltip.show').forEach(t => {
+                if(t !== tt) t.classList.remove('show');
+            });
+            // 현재 툴팁 토글
+            tt.classList.toggle('show');
+            
+            // 2초 뒤 자동으로 닫기 (선택사항)
+            if(tt.classList.contains('show')) {
+                setTimeout(() => tt.classList.remove('show'), 2000);
+            }
+        };
+    }
 
     let {t: title, s: sub} = getTileTexts(t.cat);
     if (t.isExit) { sub = title; title = 'EXIT'; }
 
-    el.innerHTML = `<div class="tile-cat">${title}</div><div class="tile-sub">${sub}</div>`;
+    // 타일 내용물 (툴팁이 텍스트 위에 오지 않도록 순서 주의)
+    const content = document.createElement('div');
+    content.style.width = '100%';
+    content.innerHTML = `<div class="tile-cat">${title}</div><div class="tile-sub">${sub}</div>`;
+    el.appendChild(content);
     
+    // 미플 렌더링 (기존 코드 유지)
     G.players.forEach(pl => {
       if(!pl.escaped && !pl.failed && (pl.y*5+pl.x) === i){
         const status = pl.blind ? 'off' : 'on';
@@ -678,6 +757,11 @@ function renderBoard(){
     board.appendChild(el);
   });
 }
+
+// [추가] 빈 공간 클릭 시 모든 툴팁 닫기 (UX 향상)
+document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-tooltip.show').forEach(t => t.classList.remove('show'));
+});
 
 function renderDice(){
   const area = _('diceArea');

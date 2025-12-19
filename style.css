@@ -570,3 +570,41 @@ input[type=range] { width: 60px; accent-color: var(--gold); }
 
 /* 숨김 처리 클래스 */
 .hidden { display: none !important; }
+
+/* --- 커스텀 툴팁 스타일 --- */
+.custom-tooltip {
+    position: absolute;
+    bottom: 100%; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: pre-line; /* 줄바꿈 허용 */
+    z-index: 100;
+    width: max-content;
+    max-width: 200px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 1px solid #555;
+    pointer-events: none; /* 클릭 방해 금지 */
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.custom-tooltip.show {
+    opacity: 1;
+    bottom: 110%; /* 살짝 위로 띄움 */
+}
+
+/* 툴팁 화살표 */
+.custom-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(0,0,0,0.9) transparent transparent transparent;
+}
