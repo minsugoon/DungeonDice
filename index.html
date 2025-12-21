@@ -17,7 +17,8 @@
     </div>
     <div class="header-controls">
       <div class="round-tracker" id="roundDisp">R 1/13</div>
-      <button id="btnHeaderRules" class="btn-mini">룰북</button>
+      <button id="btnHeaderRules" class="btn-mini">📜게임 방법</button>
+      <button id="btnIntroRule" class="btn-mini">👁️한 눈에 설명서</button>
     </div>
   </header>
 
@@ -86,6 +87,13 @@
     </div> 
   </div> 
 </div> 
+
+<div class="modal-overlay" id="introRuleModal" style="display:none;">
+  <div class="modal intro-rule-content">
+    <img src="images/card_rule.png" alt="게임 설명서" class="intro-rule-img">
+    <button id="btnCloseIntroRule" class="btn-text-close">[닫기]</button>
+  </div>
+</div>
 
 <div class="modal-overlay" id="setupModal" style="display:flex;">
   <div class="modal">

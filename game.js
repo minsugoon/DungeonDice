@@ -17,7 +17,8 @@ let G = {
   changeDiceMode: false,
   lastStandMode: false, 
   lastStandCount: 0,
-  guideMode: true // [신규] 가이드 모드 상태
+  guideMode: true, // 가이드 모드 상태
+  isIntroFlow: false // [신규] 인트로 진행 상태 체크
 };
 
 // 오디오 객체
@@ -42,6 +43,7 @@ function initGame(){
   G.round = 1;
   G.lastStandMode = false;
   G.lastStandCount = 0;
+  G.isIntroFlow = false; // 초기화
   
   for(let i=0; i<pCount; i++){
     G.players.push({
@@ -86,45 +88,60 @@ function initGame(){
   
   introAudio.play().catch(e => console.log("인트로 음악 재생 실패:", e));
   
-  updateCoach(); // [신규] 코치 업데이트
+  updateCoach(); // 코치 업데이트
 }
 
+// [요청사항1] 수정됨: 던전 입장 전 '한 눈에 설명서' 표시
 function enterDungeon() {
   introAudio.pause();
   introAudio.currentTime = 0;
 
   _('storyModal').style.display = 'none';
-  
-  renderBoard();
-  renderPlayers();
-  
-  _('gameLog').innerHTML = '';
-  _('roundDisp').innerText = `R 1 / ${CONST.MAX_ROUNDS}`;
-  log(`게임 시작! 두건을 해제하세요 (합 ${CONST.BLINDFOLD_REQ}↑)`);
-  
-  startTurn(0);
-  playBGM();
+  // 설명서 모달 띄우기 및 인트로 플래그 설정
+  _('introRuleModal').style.display = 'flex';
+  G.isIntroFlow = true; 
 }
 
-// --- 코치 시스템 (신규 기능) ---
+// [요청사항1] 추가됨: 한 눈에 설명서 닫기 버튼 로직
+function closeIntroRule() {
+    _('introRuleModal').style.display = 'none';
+    
+    // 인트로 흐름(스토리->게임)일 때만 게임 시작
+    if (G.isIntroFlow) {
+        G.isIntroFlow = false;
+        startGameFlow();
+    }
+}
+
+// 실제 게임 시작 (보드 렌더링 및 턴 시작) - 분리됨
+function startGameFlow() {
+    renderBoard();
+    renderPlayers();
+    
+    _('gameLog').innerHTML = '';
+    _('roundDisp').innerText = `R 1 / ${CONST.MAX_ROUNDS}`;
+    log(`게임 시작! 두건을 해제하세요 (합 ${CONST.BLINDFOLD_REQ}↑)`);
+    
+    startTurn(0);
+    playBGM();
+}
+
+// --- 코치 시스템 ---
 
 function updateCoach(){
     if(!G.guideMode) return;
     
     const p = G.players[G.active];
-    // 게임 시작 전이면 리턴
     if(!p) return;
 
     const coach = _('coachText');
     const rolls = G.rolls;
     
-    // 1. AI 턴
     if(G.ai && G.active === 1) {
         coach.innerText = "AI가 전략을 고민 중입니다...";
         return;
     }
 
-    // 2. 특수 상태 (중독/두건)
     if(p.poison) {
         coach.innerHTML = "☠️독에 걸렸습니다! <b>같은 숫자 4개(4 Kind)</b> 이상을 노려 해독하세요!";
         return;
@@ -135,18 +152,15 @@ function updateCoach(){
         return;
     }
 
-    // 3. 일반 진행 단계
     if (G.phase === 'roll') {
         if (rolls === 3) {
             coach.innerText = "🚩 당신의 턴입니다! [굴리기] 버튼을 눌러주세요.";
         } else if (rolls > 0) {
-            // 족보 힌트
             if(checkMatch('yacht', G.dice)) coach.innerHTML = "✨와우! <b>요트(같은 숫자 5개)</b>입니다! 어디든 갈 수 있어요!";
             else if(checkMatch('fourKind', G.dice)) coach.innerHTML = "🔥4개가 같습니다! 이동하거나 <b>요트</b>를 노려보세요.";
             else if(checkMatch('fullHouse', G.dice)) coach.innerHTML = "🏠풀하우스! 이동 조건을 만족했습니다.";
             else coach.innerText = "원하는 주사위를 클릭해 잠그고(Hold), 다시 굴려보세요.";
         } else {
-            // 굴림 횟수 소진
             coach.innerText = "✋굴림 횟수 끝! 이동할 타일을 선택하거나, 갈 곳이 없으면 턴을 종료하세요.";
         }
     } else if (G.phase === 'move') {
@@ -185,7 +199,7 @@ function startTurn(pid){
   renderDice(); 
   renderBoard(); 
   renderPlayers(); 
-  updateUI(); // updateCoach 포함됨
+  updateUI(); 
   
   if(p.poison){
     log(`<span style="color:#ff6b6b">${p.name}: ☠️중독됨! (해독: 4 Kind/Yacht)</span>`);
@@ -225,7 +239,7 @@ function rollDice(){
     dies.forEach(d=>d.classList.remove('rolling'));
     renderDice();
     checkStatusEffects(); 
-    updateUI(); // updateCoach 포함됨
+    updateUI();
     renderBoard();
     
     const p = G.players[G.active];
@@ -271,6 +285,27 @@ function checkStatusEffects(){
 
 // --- 이동 로직 ---
 
+function tryEndTurn() {
+    const p = G.players[G.active];
+    const moves = getValidMoves(p.x, p.y);
+
+    if (moves.length > 0) {
+        G.phase = 'move'; 
+        renderBoard();    
+        updateUI();       
+
+        const coach = _('coachText');
+        if(coach) {
+            coach.innerHTML = "<span style='color:#ff6b6b'>🚫 이동 가능 타일이 있어 턴 종료 버튼 사용 불가.</span>";
+            coach.style.animation = 'none';
+            coach.offsetHeight; 
+            coach.style.animation = 'float 2s ease-in-out infinite';
+        }
+    } else {
+        endTurn();
+    }
+}
+
 function confirmAction(){
   const p = G.players[G.active];
   if(p.blind || p.poison) { return; } 
@@ -283,7 +318,7 @@ function confirmAction(){
     G.phase = 'move';
     log("이동할 타일을 선택하세요.");
     renderBoard(); 
-    updateUI(); // updateCoach 포함됨
+    updateUI();
   }
 }
 
@@ -553,7 +588,6 @@ function handleDieClick(index, element){
     G.held[index] = !G.held[index];
     element.className = `die ${G.held[index]?'held':''}`;
     
-    // [신규] 주사위 홀드 시 코치 업데이트
     updateCoach();
 }
 
@@ -635,7 +669,7 @@ function aiPlay(){
   }
 }
 
-// [수정] 타일 이름 한글화 함수
+// Helper: Tile Texts
 function getTileTexts(cat) {
   switch(cat){
     case 'start': return {t:'START', s:''};
@@ -694,7 +728,6 @@ function renderBoard(){
     const el = document.createElement('div');
     el.className = `tile ${t.cat === 'start' ? 'start' : ''} ${t.isExit ? 'exit' : ''}`;
     
-    // [기존] el.title = getTileTooltip(t.cat); -> 제거 또는 유지(PC용 보조)
     // 모바일 겸용 커스텀 툴팁 추가
     const tooltipText = getTileTooltip(t.cat);
     
@@ -723,7 +756,7 @@ function renderBoard(){
             // 현재 툴팁 토글
             tt.classList.toggle('show');
             
-            // 2초 뒤 자동으로 닫기 (선택사항)
+            // 2초 뒤 자동으로 닫기
             if(tt.classList.contains('show')) {
                 setTimeout(() => tt.classList.remove('show'), 2000);
             }
@@ -739,7 +772,7 @@ function renderBoard(){
     content.innerHTML = `<div class="tile-cat">${title}</div><div class="tile-sub">${sub}</div>`;
     el.appendChild(content);
     
-    // 미플 렌더링 (기존 코드 유지)
+    // 미플 렌더링
     G.players.forEach(pl => {
       if(!pl.escaped && !pl.failed && (pl.y*5+pl.x) === i){
         const status = pl.blind ? 'off' : 'on';
@@ -793,6 +826,7 @@ function renderPlayers(){
   });
 }
 
+// [수정] UI 업데이트 함수
 function updateUI(){
   const p = G.players[G.active];
   if(G.winner !== null){ return; } 
@@ -804,11 +838,14 @@ function updateUI(){
   
   _('btnRoll').disabled = (G.phase !== 'roll' || G.rolls <= 0);
   _('btnAction').disabled = p.blind || p.poison || !(G.phase === 'roll' && hasRolled);
-  _('btnEnd').disabled = p.blind || p.poison || !( (G.phase === 'roll' && hasRolled) || G.phase === 'move' );
+
+  // [수정] 턴 종료 버튼 조건 적용
+  _('btnEnd').disabled = p.blind || p.poison || G.rolls > 0 || G.phase === 'move';
   
   _('btnAction').onclick = confirmAction;
   _('btnItem').disabled = (p.inv.length === 0) || (G.ai && G.active === 1);
-  _('btnEnd').onclick = endTurn;
+  
+  _('btnEnd').onclick = tryEndTurn;
   
   if(G.ai && G.active === 1){
     _('btnRoll').disabled = true;
@@ -817,7 +854,6 @@ function updateUI(){
     _('btnItem').disabled = true;
   }
 
-  // [신규] 코치 업데이트
   updateCoach();
 }
 
@@ -848,6 +884,10 @@ function playBGM() {
 function openRules() { _('ruleModal').style.display = 'flex'; }
 function closeRules() { _('ruleModal').style.display = 'none'; }
 
+// [요청사항3] 한 눈에 설명서 모달 제어 함수
+function openIntroRule() { _('introRuleModal').style.display = 'flex'; }
+
+
 // Event Listeners
 _('btnStartGame').addEventListener('click', initGame);
 _('btnItem').addEventListener('click', openInventory);
@@ -860,9 +900,18 @@ _('bgmVolume').addEventListener('input', function(){ bgmAudio.volume=this.value;
 
 _('btnEnterDungeon').addEventListener('click', enterDungeon);
 _('btnSkipStory').addEventListener('click', enterDungeon);
+
+// [요청사항2] 변경된 ID 반영
 _('btnHeaderRules').addEventListener('click', openRules);      
 _('btnCloseRulesTop').addEventListener('click', closeRules);   
 _('btnCloseRulesBottom').addEventListener('click', closeRules);
+
+// [요청사항3] 새 버튼 이벤트 리스너
+_('btnIntroRule').addEventListener('click', openIntroRule);
+
+// [요청사항1] 한 눈에 설명서 닫기 버튼 리스너
+_('btnCloseIntroRule').addEventListener('click', closeIntroRule);
+
 
 // [신규] 코치 닫기/켜기 버튼
 _('btnCloseCoach').addEventListener('click', () => {
