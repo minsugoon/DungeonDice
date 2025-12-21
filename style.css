@@ -652,3 +652,12 @@ input[type=range] { width: 60px; accent-color: var(--gold); }
     color: #fff; 
     transform: scale(1.05);
 }
+
+/* [요청1] 하단 버전 텍스트 스타일 */
+.ver-text-bottom {
+    font-size: 10px;
+    color: #555;
+    text-align: center;
+    margin-top: 5px;
+    width: 100%;
+}
