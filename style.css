@@ -17,7 +17,6 @@ body {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: var(--bg); 
   color: var(--text);
-  /* [수정] 스크롤 허용을 위해 hidden 제거 및 auto 설정 */
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 100vh;
@@ -29,13 +28,12 @@ body::before {
     background-image: url('images/game_background_image.png');
     background-size: cover; background-position: center;
     opacity: 0.3; z-index: -1; pointer-events: none;
-    /* 배경이 스크롤 따라오도록 고정 */
     position: fixed; 
 }
 
 .wrap {
   width: 100%; 
-  min-height: 100vh; /* 높이 유동적 */
+  min-height: 100vh; 
   display: flex; flex-direction: column;
   max-width: 1600px; margin: 0 auto;
 }
@@ -49,7 +47,7 @@ header {
   padding: 0 16px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   z-index: 10;
-  width: 100%; /* 가로 꽉 채움 */
+  width: 100%;
 }
 .logo-area { 
     font-weight: 900; font-size: 18px; 
@@ -77,7 +75,6 @@ header {
   display: flex;
   padding: 10px;
   gap: 10px;
-  /* [수정] 내부 스크롤 대신 전체 스크롤을 사용하기 위해 overflow 제거 */
   height: auto; 
 }
 
@@ -89,7 +86,6 @@ header {
   border: 1px solid rgba(255,255,255,0.05);
   display: flex; justify-content: center; align-items: center;
   position: relative;
-  /* [수정] 보드 패널이 너무 커지지 않도록 설정 */
   overflow: visible; 
 }
 
@@ -102,13 +98,16 @@ header {
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
   gap: 6px;
   width: 100%;
   aspect-ratio: 1 / 1;
 }
 
+/* [수정] 타일 스타일 개선: overflow: hidden 제거 */
 .tile {
   width: 100%; height: 100%;
+  aspect-ratio: 1 / 1;
   background: var(--board);
   border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.1);
@@ -116,19 +115,50 @@ header {
   position: relative; cursor: pointer;
   user-select: none;
   padding: 2px;
-}
-.tile.start { border: 2px solid var(--green); background: rgba(81,207,102,0.15); }
-.tile.exit { border: 2px solid var(--gold); background: rgba(255,215,0,0.15); }
-.tile.movable { 
-  box-shadow: inset 0 0 0 2px var(--green); 
-  background: rgba(81,207,102,0.25); 
-  animation: pulse 1.5s infinite; 
+  /* overflow: hidden;  <-- 삭제: 이걸 켜면 툴팁이 잘림 */
 }
 
-/* [수정] 반응형 폰트 크기 적용 (S20 너비 고려) */
+/* 타일 배경 이미지 (불투명도 30%) */
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('images/tile_bg.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3; 
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 6px; /* [추가] 배경 자체에 둥근 모서리 적용 */
+}
+
+.tile.start { border: 2px solid var(--green); }
+.tile.start::after { 
+    content:""; position:absolute; inset:0; 
+    background: rgba(81,207,102,0.15); pointer-events:none; 
+    border-radius: 6px; /* [추가] */
+}
+
+.tile.exit { border: 2px solid var(--gold); }
+.tile.exit::after { 
+    content:""; position:absolute; inset:0; 
+    background: rgba(255,215,0,0.15); pointer-events:none; 
+    border-radius: 6px; /* [추가] */
+}
+
+.tile.movable { 
+  box-shadow: inset 0 0 0 2px var(--green); 
+  animation: pulse 1.5s infinite; 
+}
+.tile.movable::after { 
+    content:""; position:absolute; inset:0; 
+    background: rgba(81,207,102,0.25); pointer-events:none; 
+    border-radius: 6px; /* [추가] */
+}
+
+/* 텍스트와 미플이 배경 위로 올라오도록 순서 조정 */
 .tile-cat { 
   font-weight: bold; 
-  /* 최소 11px, 화면 너비에 따라 커짐, 최대 16px */
   font-size: clamp(11px, 3.5vw, 16px); 
   text-align: center;
   margin-bottom: 2px;
@@ -136,11 +166,10 @@ header {
   width: 100%;
   white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
+  position: relative; z-index: 1;
 }
 
-/* [수정] 반응형 폰트 크기 적용 */
 .tile-sub { 
-  /* 최소 9px, 화면 너비에 따라 커짐, 최대 14px */
   font-size: clamp(9px, 2.5vw, 14px); 
   color: #bbb; 
   text-align: center;
@@ -148,9 +177,9 @@ header {
   width: 100%;
   white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
+  position: relative; z-index: 1;
 }
 
-/* [수정] 미플 크기 30px 유지 */
 .meeple {
   width: 30px; height: 30px;
   background-size: contain; background-repeat: no-repeat; background-position: center;
@@ -165,8 +194,6 @@ header {
   min-width: 300px; max-width: 360px;
   display: flex; flex-direction: column;
   gap: 8px;
-  /* 모바일에서 내용이 길어지면 body 스크롤을 쓰도록 auto 해제 가능하지만
-     PC 호환을 위해 유지하되 모바일 쿼리에서 덮어씀 */
   overflow-y: auto; 
 }
 
@@ -257,7 +284,7 @@ input[type=range] { width: 60px; accent-color: var(--gold); }
 /* Mobile */
 @media (max-width: 900px) {
   .wrap { max-width: 100%; }
-  .game-body { flex-direction: column; height: auto; padding-bottom: 40px; /* 하단 여백 추가 */}
+  .game-body { flex-direction: column; height: auto; padding-bottom: 40px; }
   
   .board-panel { 
     flex: none; width: 100%; padding: 0; 
@@ -267,7 +294,7 @@ input[type=range] { width: 60px; accent-color: var(--gold); }
 
   .ctrl-panel { 
     flex: 1; max-width: 100%; min-width: 0; 
-    overflow-y: visible; /* 컨트롤 패널 내부 스크롤 해제 -> 전체 스크롤 */
+    overflow-y: visible;
   }
   
   .side-info-group { flex-direction: row; height: auto; }
@@ -311,353 +338,155 @@ input[type=range] { width: 60px; accent-color: var(--gold); }
 @keyframes pulse { 0%{opacity:0.7} 50%{opacity:1} 100%{opacity:0.7} }
 @keyframes shake { 0%{transform:rotate(0deg)} 25%{transform:rotate(5deg)} 75%{transform:rotate(-5deg)} }
 
-/* --- 추가된 스타일 --- */
-
 /* 시작 페이지 모달 내 로고 스타일 */
 .start-page-logo {
-    display: block;
-    width: 90%;           /* 모바일 기준 너비 */
-    max-width: 280px;     /* 너무 커지지 않도록 최대 너비 제한 */
-    height: auto;         /* 비율 유지 */
-    margin: 10px auto 20px auto; /* 상단 10px, 하단 20px 여백 및 중앙 정렬 */
+    display: block; width: 90%; max-width: 280px; height: auto;
+    margin: 10px auto 20px auto; 
 }
+#setupModal .modal { padding: 25px 20px 30px; }
 
-/* (선택사항) 로고가 들어가면서 모달 내용이 길어질 수 있으므로,
-   작은 화면에서 모달이 너무 꽉 차 보이지 않게 모달 자체의 패딩을 약간 조정합니다. */
-#setupModal .modal {
-    padding: 25px 20px 30px;
-}
-
-/* --- 스토리 페이지 스타일 --- */
-
-/* 배경 이미지를 꽉 채우고 어둡게 처리 */
+/* 스토리 페이지 스타일 */
 #storyModal {
-  background-image: url('images/story_bg.png'); /* 이미지 파일명 확인 */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  z-index: 2000; /* 설정창보다 위에 뜨도록 */
+  background-image: url('images/story_bg.png'); 
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  z-index: 2000; 
 }
-
-/* 배경이 어두워지도록 오버레이 추가 */
 #storyModal::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: rgba(0, 0, 0, 0.7); /* 배경 이미지 어둡게 */
-  z-index: -1;
+  content: ""; position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.7); z-index: -1;
 }
-
 .story-container {
-  width: 100%;
-  max-width: 800px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  animation: fadeIn 1s ease-in-out;
+  width: 100%; max-width: 800px; height: 100%;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 20px; animation: fadeIn 1s ease-in-out;
 }
-
 .story-text-box {
-  background: rgba(20, 20, 25, 0.85); /* 텍스트 박스 반투명 배경 */
-  padding: 40px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 215, 0, 0.3); /* 골드 테두리 연하게 */
-  margin-bottom: 30px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-  max-height: 70vh;
-  overflow-y: auto;
+  background: rgba(20, 20, 25, 0.85); padding: 40px; border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.3); margin-bottom: 30px;
+  text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  max-height: 70vh; overflow-y: auto;
 }
-
 .story-title {
-  color: var(--gold);
-  font-size: 24px;
-  margin-bottom: 20px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 10px;
+  color: var(--gold); font-size: 24px; margin-bottom: 20px; letter-spacing: 2px;
+  text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;
 }
-
 .story-desc {
-  font-size: 16px;
-  line-height: 1.8;
-  color: #e0e0e0;
-  word-break: keep-all;
+  font-size: 16px; line-height: 1.8; color: #e0e0e0; word-break: keep-all;
 }
-
-.story-desc .highlight {
-  color: var(--accent);
-  font-weight: bold;
-  font-size: 1.1em;
-}
-
-.story-controls {
-  display: flex;
-  gap: 15px;
-  width: 100%;
-  max-width: 400px;
-}
-
+.story-desc .highlight { color: var(--accent); font-weight: bold; font-size: 1.1em; }
+.story-controls { display: flex; gap: 15px; width: 100%; max-width: 400px; }
 .btn-story-main {
-  flex: 2;
-  background: var(--gold);
-  color: #000;
-  border: none;
-  font-size: 16px;
-  padding: 15px;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: transform 0.2s;
+  flex: 2; background: var(--gold); color: #000; border: none; font-size: 16px;
+  padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: transform 0.2s;
 }
 .btn-story-main:hover { transform: scale(1.05); }
-
 .btn-story-skip {
-  flex: 1;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
-  color: #aaa;
-  border-radius: 8px;
-  cursor: pointer;
+  flex: 1; background: transparent; border: 1px solid rgba(255,255,255,0.3);
+  color: #aaa; border-radius: 8px; cursor: pointer;
 }
 .btn-story-skip:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-/* 모바일 대응 */
 @media (max-width: 600px) {
   .story-text-box { padding: 20px; }
   .story-desc { font-size: 14px; }
   .story-title { font-size: 20px; }
 }
-
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- 룰북 모달 스타일 --- */
-
-/* 모달 크기 및 레이아웃 */
+/* 룰북 모달 스타일 */
 .rule-modal-content {
-  width: 95%;
-  max-width: 650px; /* 넓게 보기 */
-  height: 85vh;     /* 화면 높이의 85% */
-  padding: 0;       /* 내부 여백 제거 (헤더/바디 분리 위해) */
-  display: flex;
-  flex-direction: column;
-  background: #1e1e24;
-  text-align: left;
-  overflow: hidden; /* 모달 전체 스크롤 방지 */
+  width: 95%; max-width: 650px; height: 85vh; padding: 0;
+  display: flex; flex-direction: column; background: #1e1e24;
+  text-align: left; overflow: hidden;
 }
-
-/* 룰북 헤더 */
 .rule-header {
-  padding: 15px 20px;
-  background: rgba(0,0,0,0.3);
+  padding: 15px 20px; background: rgba(0,0,0,0.3);
   border-bottom: 1px solid rgba(255,255,255,0.1);
-  display: flex; justify-content: space-between; align-items: center;
-  flex-shrink: 0;
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
 }
 .rule-header h2 { margin: 0; font-size: 18px; color: var(--gold); }
 .btn-close-x { background:none; border:none; color:#999; font-size:24px; cursor:pointer; padding:0; }
-
-/* 룰북 본문 (스크롤 영역) */
-.rule-body {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto; /* 세로 스크롤 허용 */
-  font-size: 14px;
-  color: #e0e0e0;
-}
-
-/* 섹션 스타일 */
+.rule-body { flex: 1; padding: 20px; overflow-y: auto; font-size: 14px; color: #e0e0e0; }
 .rule-sect-title {
-  color: var(--blue);
-  border-bottom: 2px solid rgba(77, 171, 247, 0.3);
-  padding-bottom: 5px; margin: 25px 0 10px 0;
-  font-size: 16px;
+  color: var(--blue); border-bottom: 2px solid rgba(77, 171, 247, 0.3);
+  padding-bottom: 5px; margin: 25px 0 10px 0; font-size: 16px;
 }
 .rule-sect-title:first-child { margin-top: 0; }
-
-.sub-title {
-  color: #aaa; margin: 15px 0 5px; font-size: 13px; font-weight: bold;
-}
-
-.rule-summary-list {
-  padding-left: 20px; margin: 0; line-height: 1.6;
-}
+.sub-title { color: #aaa; margin: 15px 0 5px; font-size: 13px; font-weight: bold; }
+.rule-summary-list { padding-left: 20px; margin: 0; line-height: 1.6; }
 .rule-summary-list li { margin-bottom: 5px; }
-
-/* 테이블 스타일 */
 .rule-table {
   width: 100%; border-collapse: collapse; margin-bottom: 10px;
   font-size: 13px; background: rgba(0,0,0,0.2);
 }
 .rule-table th {
   background: rgba(255,215,0,0.1); color: var(--gold);
-  padding: 8px; border: 1px solid rgba(255,255,255,0.1);
-  white-space: nowrap;
+  padding: 8px; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
 }
-.rule-table td {
-  padding: 8px; border: 1px solid rgba(255,255,255,0.1);
-  text-align: center;
-}
-.rule-table.small-text th, .rule-table.small-text td {
-  font-size: 12px; padding: 6px;
-}
-
-/* 하단 닫기 버튼 */
+.rule-table td { padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+.rule-table.small-text th, .rule-table.small-text td { font-size: 12px; padding: 6px; }
 #btnCloseRulesBottom { margin: 10px 20px 20px; width: calc(100% - 40px); flex-shrink: 0; }
-
-/* 스크롤바 커스텀 */
 .rule-body::-webkit-scrollbar { width: 6px; }
 .rule-body::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 .rule-body::-webkit-scrollbar-track { background: transparent; }
 
-/* --- 코치(도움말) 시스템 스타일 --- */
-
+/* 코치(도움말) 시스템 스타일 */
 .coach-bubble {
-    background: #4dabf7; /* 밝은 파란색으로 주목도 높임 */
-    color: #fff;
-    padding: 10px 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    position: relative;
-    font-size: 13px;
-    line-height: 1.4;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    animation: float 2s ease-in-out infinite;
+    background: #4dabf7; color: #fff; padding: 10px 15px; border-radius: 12px; margin-bottom: 10px;
+    position: relative; font-size: 13px; line-height: 1.4;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); animation: float 2s ease-in-out infinite;
     display: flex; justify-content: space-between; align-items: center;
 }
-
-/* 말풍선 꼬리 */
 .coach-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -6px; left: 20px;
-    width: 0; height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 8px solid #4dabf7;
+    content: ''; position: absolute; bottom: -6px; left: 20px; width: 0; height: 0;
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #4dabf7;
 }
-
 .btn-coach-close {
-    background: rgba(0,0,0,0.2);
-    border: none; color: #fff;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    font-size: 12px;
-    cursor: pointer;
-    margin-left: 10px;
+    background: rgba(0,0,0,0.2); border: none; color: #fff; width: 20px; height: 20px;
+    border-radius: 50%; font-size: 12px; cursor: pointer; margin-left: 10px;
     display: flex; align-items: center; justify-content: center;
 }
-
 .btn-help-toggle {
-    background: #444; color: #bbb;
-    border: 1px solid #666;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    font-size: 11px;
-    cursor: pointer;
-    padding: 0;
+    background: #444; color: #bbb; border: 1px solid #666; width: 20px; height: 20px;
+    border-radius: 50%; font-size: 11px; cursor: pointer; padding: 0;
 }
-
-/* 둥둥 떠있는 애니메이션 */
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-3px); }
-    100% { transform: translateY(0px); }
-}
-
-/* 숨김 처리 클래스 */
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-3px); } 100% { transform: translateY(0px); } }
 .hidden { display: none !important; }
 
-/* --- 커스텀 툴팁 스타일 --- */
+/* 커스텀 툴팁 스타일 */
 .custom-tooltip {
-    position: absolute;
-    bottom: 100%; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    white-space: pre-line; /* 줄바꿈 허용 */
-    z-index: 100;
-    width: max-content;
-    max-width: 200px;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    border: 1px solid #555;
-    pointer-events: none; /* 클릭 방해 금지 */
-    opacity: 0;
-    transition: opacity 0.2s;
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9); color: #fff; padding: 8px 12px; border-radius: 6px;
+    font-size: 12px; white-space: pre-line; z-index: 100;
+    width: max-content; max-width: 200px; text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #555;
+    pointer-events: none; opacity: 0; transition: opacity 0.2s;
 }
-
-.custom-tooltip.show {
-    opacity: 1;
-    bottom: 110%; /* 살짝 위로 띄움 */
-}
-
-/* 툴팁 화살표 */
+.custom-tooltip.show { opacity: 1; bottom: 110%; }
 .custom-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%; left: 50%;
-    margin-left: -6px;
-    border-width: 6px;
-    border-style: solid;
-    border-color: rgba(0,0,0,0.9) transparent transparent transparent;
+    content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px;
+    border-width: 6px; border-style: solid; border-color: rgba(0,0,0,0.9) transparent transparent transparent;
 }
 
-/* --- [요청사항1] 한 눈에 설명서 모달 스타일 (레이아웃 수정됨) --- */
+/* 한 눈에 설명서 모달 스타일 */
 .intro-rule-content {
-    padding: 0 !important; /* 기존 modal 패딩 강제 제거 */
-    background: transparent !important; /* 기존 modal 배경 제거 */
-    border: none !important; /* 테두리 제거 */
-    width: auto !important; /* 너비를 이미지 비율에 맞춤 */
-    max-width: 95% !important; /* 화면 꽉 차지 않게 여백 둠 */
-    max-height: 95vh; /* 높이도 화면의 95%로 제한 */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow: none !important; /* 기존 modal 그림자 제거 */
+    padding: 0 !important; background: transparent !important; border: none !important;
+    width: auto !important; max-width: 95% !important; max-height: 95vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: none !important;
 }
-
 .intro-rule-img {
-    /* 핵심 수정: 높이를 화면의 80%로 제한하여 한 눈에 들어오게 함 */
-    max-height: 80vh; 
-    width: auto; /* 높이에 맞춰 너비 자동 조절 */
-    max-width: 100%; /* 가로가 너무 넓어지는 것 방지 */
-    height: auto;
-    border-radius: 8px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8); /* 그림자 진하게 */
-    object-fit: contain; /* 비율 유지 */
+    max-height: 80vh; width: auto; max-width: 100%; height: auto;
+    border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); object-fit: contain;
 }
-
 .btn-text-close {
-    background: rgba(0, 0, 0, 0.5); /* 버튼 배경 반투명 추가 */
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 20px;
-    padding: 8px 20px;
-    color: #e0e0e0;
-    font-size: 14px;
-    margin-top: 15px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s;
+    background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px; padding: 8px 20px; color: #e0e0e0; font-size: 14px;
+    margin-top: 15px; cursor: pointer; text-decoration: none; transition: all 0.2s;
 }
-.btn-text-close:hover { 
-    background: rgba(255, 255, 255, 0.2); 
-    color: #fff; 
-    transform: scale(1.05);
-}
+.btn-text-close:hover { background: rgba(255, 255, 255, 0.2); color: #fff; transform: scale(1.05); }
 
-/* [요청1] 하단 버전 텍스트 스타일 */
+/* 하단 버전 텍스트 스타일 */
 .ver-text-bottom {
-    font-size: 10px;
-    color: #555;
-    text-align: center;
-    margin-top: 5px;
-    width: 100%;
+    font-size: 10px; color: #555; text-align: center; margin-top: 5px; width: 100%;
 }
