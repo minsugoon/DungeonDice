@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <meta name="theme-color" content="#121212">
+  <title>던전 다이스 (Dungeon Dice)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="logo-area">
+      <img src="images/game_logo.png" alt="던전 다이스 로고" class="logo-img">
+    </div>
+    <div class="header-controls">
+      <div class="round-tracker" id="roundDisp">R 1/13</div>
+      <button id="btnHeaderRules" class="btn-mini">📜룰북</button>
+      <button id="btnIntroRule" class="btn-mini">👁️설명</button>
+    </div>
+  </header>
+
+  <div class="game-body">
+    <div class="board-panel">
+      <div class="grid-container">
+        <div class="grid" id="board"></div>
+      </div>
+    </div>
+
+    <div class="ctrl-panel">
+      <div id="gameCoach" class="coach-bubble">
+        <span id="coachText">주사위를 굴려 모험을 시작하세요!</span>
+        <button id="btnCloseCoach" class="btn-coach-close" title="도움말 끄기">x</button>
+      </div>
+
+      <div class="card main-control">
+        <div class="turn-header">
+             <div style="display:flex; gap:5px; align-items:center;">
+                <span id="turnIndicator">게임 준비</span>
+                <button id="btnHelpToggle" class="btn-help-toggle" style="display:none;">?</button>
+             </div>
+             <span id="statusIndicator"></span>
+        </div>
+        
+        <div class="dice-wrapper">
+          <div class="dice-container" id="diceArea"></div>
+        </div>
+        
+        <div class="info-text" id="rollInfo"></div>
+        
+        <div class="btn-grid">
+          <button id="btnRoll" class="primary" disabled>굴리기</button>
+          <button id="btnAction" disabled>이동/확정</button>
+        </div>
+        <div class="btn-grid sub-actions">
+           <button id="btnItem" class="item" disabled>가방</button>
+           <button id="btnEnd" disabled>턴 종료</button>
+        </div>
+      </div>
+
+      <div class="side-info-group">
+        <div class="card player-card">
+          <div class="card-label">플레이어 현황</div>
+          <div id="playerList"></div>
+        </div>
+
+        <div class="card log-card">
+          <div class="log-box" id="gameLog">
+            <div class="log-entry">게임 로딩 완료...</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bottom-controls">
+        <div class="bgm-mini-panel">
+          <span style="font-size:11px; color:#888;">BGM</span>
+          <div class="bgm-controls">
+            <button id="btnBgmPlay">▶</button>
+            <button id="btnBgmPause">❚❚</button>
+            <input type="range" id="bgmVolume" min="0" max="1" step="0.1" value="0.7">
+          </div>
+        </div>
+        <button id="btnRestartMain" class="restart">다시 시작</button>
+        <div class="ver-text-bottom">Ver. Rule Patch / Update 2025.12.21</div>
+      </div>
+    </div> 
+  </div> 
+</div> 
+
+<div class="modal-overlay" id="introRuleModal" style="display:none;">
+  <div class="modal intro-rule-content">
+    <img src="images/card_rule.png" alt="게임 설명서" class="intro-rule-img">
+    <button id="btnCloseIntroRule" class="btn-text-close">[닫기]</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="setupModal" style="display:flex;">
+  <div class="modal">
+    <img src="images/game_logo.png" alt="던전 다이스 로고" class="start-page-logo">
+    <h2 style="color:var(--gold)">게임 설정</h2>
+    <div class="option-list">
+      <div style="margin-bottom:5px; color:#ddd; font-size:13px; font-weight:bold;">플레이어 수</div>
+      <label class="radio-box"><input type="radio" name="pCount" value="2" checked> 2인</label>
+      <label class="radio-box"><input type="radio" name="pCount" value="3"> 3인</label>
+      <label class="radio-box"><input type="radio" name="pCount" value="4"> 4인</label>
+      
+      <div class="divider"></div>
+      
+      <div style="margin-bottom:5px; color:#ddd; font-size:13px; font-weight:bold;">AI 플레이어 지정</div>
+      <label class="check-box"><input type="checkbox" id="ai_p2"> 2P (AI)</label>
+      <label class="check-box"><input type="checkbox" id="ai_p3"> 3P (AI)</label>
+      <label class="check-box"><input type="checkbox" id="ai_p4"> 4P (AI)</label>
+    </div>
+    <button id="btnStartGame" class="primary full-width">게임 시작</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resultModal" style="display:none;">
+  <div class="modal result-content">
+    <h2 style="color:var(--gold); margin-bottom:20px; text-shadow:0 0 10px rgba(255,215,0,0.5);">🏆 게임 종료 🏆</h2>
+    <div id="resultList" class="result-list"></div>
+    <button id="btnRestartResult" class="primary full-width" style="margin-top:20px;">다시 시작</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="storyModal" style="display:none;">
+  <div class="story-container">
+    <div class="story-text-box">
+      <h2 class="story-title">SYNOPSIS</h2>
+      <p class="story-desc">
+        마왕의 보물을 훔치러 온 4명의 도둑, 하지만 모두 발각되어 붙잡혔다.<br><br>
+        도둑들의 머리에는 두건이 씌워져 앞이 보이지 않고, 손은 뒤로 결박된 채 큰 방 한 곳으로 모두 끌려왔다.<br><br>
+        <span class="highlight">"암흑으로 떨어진 너희들 중 살아 온 놈은 살려주마!"</span><br><br>
+        마왕의 외침과 함께 바닥이 열렸고, 잡혀 온 4명의 도둑은 순식간에 아래로 사라졌다.<br><br>
+        시간이 흘러 바닥으로 떨어진 도둑들은 정신을 차렸지만 눈은 가려져 보이지 않고, 
+        차가운 공기와 비릿한 냄새가 가득 찬 이곳이 어디인지 몰랐지만, <br>
+        <b>도둑들은 살기 위해 움직였다.</b>
+      </p>
+    </div>
+    <div class="story-controls">
+      <button id="btnEnterDungeon" class="btn-story-main">⚔️ 던전으로 이동</button>
+      <button id="btnSkipStory" class="btn-story-skip">SKIP ▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cardModal">
+  <div class="modal">
+    <h3 id="cardType">카드 획득</h3>
+    <div class="card-visual" id="cardVisual">
+      <div id="cardName" class="visual-title"></div>
+      <div id="cardDesc" class="visual-desc"></div>
+    </div>
+    <div id="cardResult" class="result-text"></div>
+    <div class="btn-row" id="cardActions"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="inventoryModal">
+  <div class="modal">
+    <h3>인벤토리</h3>
+    <div id="invList" class="inv-list-box"></div>
+    <button id="btnCloseInv" class="full-width">닫기</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ruleModal" style="display:none;">
+  <div class="modal rule-modal-content">
+    <div class="rule-header">
+      <h2>📜 던전 다이스 룰북</h2>
+      <button id="btnCloseRulesTop" class="btn-close-x">✖</button>
+    </div>
+    
+    <div class="rule-body">
+      <section>
+        <h3 class="rule-sect-title">🎲 던전 다이스(Dungeon Dice) 규칙 요약</h3>
+        
+        <h4 class="sub-title" style="color:#ffd700; margin-top:10px;">1. 게임 목표</h4>
+        <p style="font-size:14px; line-height:1.6; color:#e0e0e0; margin-bottom:15px;">
+          주사위 족보를 완성해 맵을 이동하고, 다양한 카드로 점수를 획득하여 <b>가장 높은 점수로 탈출</b>하는 것이 목표입니다.
+        </p>
+
+        <h4 class="sub-title" style="color:#ffd700;">2. 게임 진행</h4>
+        <ul class="rule-summary-list">
+          <li>
+            <strong>🕶️ 두건 해제 (1라운드~):</strong> 모든 플레이어는 앞이 보이지 않는 상태로 시작합니다.<br>
+            주사위 5개를 굴려 <b>합이 15 이상</b> 나와야 두건을 벗고 이동할 수 있습니다.
+          </li>
+          <li style="margin-top:8px;">
+            <strong>🎲 이동 (야추 규칙):</strong> 주사위 5개를 최대 3회 굴려(Hold 가능), 상하좌우 인접한 타일의 <b>조건(예: 같은 숫자 3개, 합 25 이상 등)</b>을 만족하면 이동합니다.
+          </li>
+          <li style="margin-top:4px; color:#aaa; font-size:13px;">
+            ※ 조건이 맞는 일반 타일이 없으면 <b>'찬스 타일'</b>로 이동해야 하며, 둘 다 없으면 턴이 종료됩니다.
+          </li>
+          <li style="margin-top:8px;">
+            <strong>🃏 카드 이벤트:</strong> 도착한 타일에 따라 액션/아이템/찬스 카드를 획득합니다.<br> 
+            카드에 적힌 방어 조건(주사위 굴림)에 <b>성공하면 점수나 아이템</b>을 얻고, 실패하면 후퇴하거나 감점됩니다.
+          </li>
+        </ul>
+
+        <h4 class="sub-title" style="color:#ffd700;">3. 종료 및 승리</h4>
+        <ul class="rule-summary-list">
+          <li>누군가 모서리의 <b>EXIT 타일</b>에 도착하면(탈출 +2점), 나머지 플레이어는 <b>마지막 1턴씩</b>을 진행하고 게임이 종료됩니다. (최대 13라운드 제한)</li>
+          <li>최종적으로 <b>가장 높은 점수</b>를 획득한 플레이어가 승리합니다.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 class="rule-sect-title">🗺️ 2. 타일 정보</h3>
+        <h4 class="sub-title">던전 타일 (일반)</h4>
+        <table class="rule-table">
+          <thead><tr><th>타일명</th><th>조건 (족보)</th><th>효과</th></tr></thead>
+          <tbody>
+            <tr><td>트리플</td><td>같은 수 3개</td><td>-</td></tr>
+            <tr><td>찬스</td><td>매칭 없음 (필수)</td><td>찬스 카드</td></tr>
+            <tr><td>주사위 [N]</td><td>해당 숫자 포함</td><td>-</td></tr>
+            <tr><td>포카드</td><td>같은 수 4개</td><td>액션 카드</td></tr>
+            <tr><td>풀하우스</td><td>3개+2개 동일</td><td>액션 카드</td></tr>
+            <tr><td>스트레이트</td><td>4/5연속 숫자</td><td>액션 카드</td></tr>
+            <tr><td>합 25↑/7↓</td><td>합 25이상 / 7이하</td><td>액션 카드</td></tr>
+            <tr><td>야추</td><td>같은 수 5개</td><td>아이템 카드</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="sub-title">EXIT 타일 (탈출구)</h4>
+        <table class="rule-table">
+          <thead><tr><th>타일명</th><th>조건</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td>풀하우스</td><td>3개+2개 동일</td><td>표준 난이도</td></tr>
+            <tr><td>합 15</td><td>정확히 15</td><td>어려움</td></tr>
+            <tr><td>홀/짝수</td><td>모두 홀수/짝수</td><td>어려움</td></tr>
+            <tr><td>5연속</td><td>1~5 or 2~6</td><td>매우 어려움</td></tr>
+            <tr><td>야추</td><td>같은 수 5개</td><td>극악</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3 class="rule-sect-title">🃏 3. 카드 도감</h3>
+        
+        <h4 class="sub-title">⚔️ 액션 카드 (방어 굴림 1회)</h4>
+        <table class="rule-table small-text">
+          <thead><tr><th>이름</th><th>방어 조건</th><th>성공 / 실패</th></tr></thead>
+          <tbody>
+            <tr><td>금괴/미믹</td><td>합 15↑</td><td>+1점 / 후퇴</td></tr>
+            <tr><td>슬라임/함정</td><td>3 Kind</td><td>+1점 / 후퇴 or 감점</td></tr>
+            <tr><td>박쥐/고블린</td><td>4 Kind/합25↑</td><td>+2점 / 후퇴 or 감점</td></tr>
+            <tr><td>해골 병사</td><td>합 25↑</td><td>+2점 / -4점</td></tr>
+            <tr><td>킹 코브라</td><td>합 7↓</td><td><b>카드획득</b> / 시작점 이동</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="sub-title">🍀 찬스 카드 (리롤 불가)</h4>
+        <table class="rule-table small-text">
+          <thead><tr><th>이름</th><th>성공 조건</th><th>성공 / 실패</th></tr></thead>
+          <tbody>
+            <tr><td>안전한 길</td><td>합 15~18</td><td>0점 / 후퇴</td></tr>
+            <tr><td>강력한 한방</td><td>합 20↑</td><td>+1점 / -1점</td></tr>
+            <tr><td>바늘 구멍</td><td>합 8↓</td><td>+1점 / -2점</td></tr>
+            <tr><td>축복(홀/짝)</td><td>모두 홀/짝</td><td>+2점 / 시작점 이동</td></tr>
+            <tr><td>덫/고블린</td><td>모두 4↑/3↓</td><td>+2점 / 시작점 이동</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="sub-title">🎒 아이템 카드 (획득 시도)</h4>
+        <table class="rule-table small-text">
+          <thead><tr><th>이름</th><th>획득 조건</th><th>사용 효과</th></tr></thead>
+          <tbody>
+            <tr><td>모래시계</td><td>모두 짝수</td><td>굴림 기회 +1회</td></tr>
+            <tr><td>요정가루</td><td>모두 홀수</td><td>주사위 1개 리롤</td></tr>
+            <tr><td>수정구</td><td>모두 4↑</td><td>주사위 3개 미리 고정</td></tr>
+            <tr><td>트릭스터</td><td>모두 2↓</td><td>주사위 1개 눈 변경</td></tr>
+            <tr><td>해독제</td><td>4 Kind</td><td>중독 즉시 치료</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    
+    <button id="btnCloseRulesBottom" class="primary full-width" style="margin-top:15px;">닫기</button>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
