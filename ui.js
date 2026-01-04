@@ -4,7 +4,7 @@
  */
 import { CONST, BGM_PLAYLIST } from './data.js';
 import { _, formatReq } from './utils.js';
-import { G, bgmAudio } from './state.js';
+import { G, bgmAudio } from './state.js'; 
 import { getValidMoves } from './logic_play.js';
 
 // --- 렌더링 함수 ---
@@ -28,6 +28,7 @@ export function renderBoard(){
     if(moves.includes(i)) { 
         el.classList.add('movable'); 
         el.dataset.idx = i; 
+        // [수정] 차단 코드(onclick) 삭제 -> main.js의 이벤트 위임이 처리함
     } else {
         el.onclick = (e) => {
             e.stopPropagation();
@@ -107,9 +108,8 @@ export function updateUI(){
   _('btnRoll').disabled = (G.phase !== 'roll' || G.rolls <= 0);
   _('btnAction').disabled = p.blind || p.poison || !(G.phase === 'roll' && hasRolled);
   _('btnEnd').disabled = p.blind || p.poison || G.rolls > 0 || G.phase === 'move';
-  _('btnItem').disabled = (p.inv.length === 0) || (p.isAI); 
+  _('btnItem').disabled = (p.inv.length === 0) || (G.ai && G.active === 1);
   
-  // [수정] AI 플레이어면 조작 버튼 비활성
   if(p.isAI){
     _('btnRoll').disabled = true;
     _('btnAction').disabled = true;
@@ -125,27 +125,49 @@ export function log(msg){
   box.scrollTop = box.scrollHeight;
 }
 
+// [수정] showCardModal: 이미지 카드 지원
 export function showCardModal(card, type, resolveCallback){
   const modal = _('cardModal');
   const acts = _('cardActions');
+  const cardVisual = _('cardVisual');
   
-  _('cardType').innerText = type.toUpperCase() + " CARD";
-  _('cardName').innerText = card.name;
-  _('cardVisual').className = `card-visual card-${type}`;
+  // 이미지가 있는 경우 (액션 카드)
+  if (card.img) {
+      // 상단 텍스트 숨기기
+      _('cardType').style.display = 'none';
+      
+      // 이미지 전용 클래스 및 HTML 주입
+      cardVisual.className = 'card-visual-img-container'; 
+      cardVisual.innerHTML = `<img src="${card.img}" class="card-img-responsive" alt="${card.name}">`;
+      
+      // 기존 텍스트 엘리먼트 내용은 비워둠 (오류 방지)
+  } 
+  // 이미지가 없는 경우 (찬스/아이템 카드 - 기존 방식 유지)
+  else {
+      _('cardType').style.display = 'block';
+      _('cardType').innerText = type.toUpperCase() + " CARD";
+      
+      cardVisual.className = `card-visual card-${type}`;
+      cardVisual.innerHTML = `
+        <div id="cardName" class="visual-title">${card.name}</div>
+        <div id="cardDesc" class="visual-desc"></div>
+      `;
+      
+      // 설명 텍스트 구성
+      let descHtml = "";
+      if(type === 'item'){
+          descHtml = `획득 조건: <b>${formatReq(card.req)}</b><br><br>효과: ${card.desc}`;
+      } else { 
+          descHtml = `조건: ${formatReq(card.req)}<br>성공: ${card.win} / 실패: ${card.lose}`;
+      }
+      _('cardDesc').innerHTML = descHtml;
+  }
+
   acts.innerHTML = '';
   _('cardResult').innerHTML = '';
 
-  let btnText = "주사위 굴리기";
-  if(type === 'item'){
-      _('cardDesc').innerHTML = `획득 조건: <b>${formatReq(card.req)}</b><br><br>효과: ${card.desc}`;
-      btnText = "획득 시도 (1회)";
-  } else if(type === 'chance'){
-      _('cardDesc').innerHTML = `조건: ${formatReq(card.req)}<br>성공: ${card.win} / 실패: ${card.lose}`;
-      btnText = "운 시험 (리롤 불가)";
-  } else { 
-      _('cardDesc').innerHTML = `방어 조건: ${formatReq(card.req)}<br>성공: ${card.win} / 실패: ${card.lose}`;
-      btnText = "방어 굴림";
-  }
+  let btnText = (type === 'item') ? "획득 시도 (1회)" : 
+                (type === 'chance') ? "운 시험 (리롤 불가)" : "방어 굴림";
 
   const btn = document.createElement('button');
   btn.className = 'action';
@@ -155,7 +177,6 @@ export function showCardModal(card, type, resolveCallback){
   
   modal.style.display = 'flex';
   
-  // [수정] AI 플레이어면 자동 클릭
   const p = G.players[G.active];
   if(p.isAI) setTimeout(()=>btn.click(), 1500);
 }
@@ -168,7 +189,6 @@ export function updateCoach(){
     const coach = _('coachText');
     const rolls = G.rolls;
     
-    // [수정] AI 텍스트
     if(p.isAI) {
         coach.innerText = `${p.name}가 전략을 고민 중입니다...`;
         return;

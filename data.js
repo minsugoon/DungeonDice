@@ -29,16 +29,16 @@ export const MAP_TILES_CONFIG = [
 // [Page 5-6] EXIT 타일 풀 (난이도 높음)
 export const EXIT_POOL = ['fullHouse', 'sum15Exact', 'allEven', 'allOdd', 'largeStr', 'sum25', 'sum7', 'yacht'];
 
-// [Page 9-10] 액션 카드
+// [Page 9-10] 액션 카드 (이미지 경로 추가됨)
 export const DECK_ACTION_DEF = [
-  {name:"숨겨진 금괴", count:5, req:'sum15', win:'+1점', lose:'없음', effect:(p,s)=>{ if(s) p.score++; }},
-  {name:"던전 슬라임", count:4, req:'threeKind', win:'+1점', lose:'후퇴', effect:(p,s)=>{ if(s) p.score++; else return 'BACK'; }},
-  {name:"미믹", count:4, req:'sum15', win:'+1점', lose:'후퇴', effect:(p,s)=>{ if(s) p.score++; else return 'BACK'; }},
-  {name:"함정 카드", count:4, req:'threeKind', win:'회피', lose:'-2점', effect:(p,s)=>{ if(!s) p.score-=2; }},
-  {name:"흡혈 박쥐 떼", count:2, req:'fourKind', win:'+2점', lose:'후퇴', effect:(p,s)=>{ if(s) p.score+=2; else return 'BACK'; }},
-  {name:"화난 고블린", count:2, req:'sum25', win:'+2점', lose:'-2점', effect:(p,s)=>{ if(s) p.score+=2; else p.score-=2; }},
-  {name:"해골 병사", count:2, req:'sum25', win:'+2점', lose:'-4점', effect:(p,s)=>{ if(s) p.score+=2; else p.score-=4; }},
-  {name:"킹 코브라", count:1, req:'sum7', win:'획득', lose:'시작점', effect:(p,s)=>{ if(s) return 'GET_COBRA'; else return 'START'; }}
+  {name:"숨겨진 금괴", count:5, req:'sum15', win:'+1점', lose:'없음', img:'images/card/action_card_001.png', effect:(p,s)=>{ if(s) p.score++; }},
+  {name:"던전 슬라임", count:4, req:'threeKind', win:'+1점', lose:'후퇴', img:'images/card/action_card_002.png', effect:(p,s)=>{ if(s) p.score++; else return 'BACK'; }},
+  {name:"미믹", count:4, req:'sum15', win:'+1점', lose:'후퇴', img:'images/card/action_card_003.png', effect:(p,s)=>{ if(s) p.score++; else return 'BACK'; }},
+  {name:"함정 카드", count:4, req:'threeKind', win:'회피', lose:'-2점', img:'images/card/action_card_004.png', effect:(p,s)=>{ if(!s) p.score-=2; }},
+  {name:"흡혈 박쥐 떼", count:2, req:'fourKind', win:'+2점', lose:'후퇴', img:'images/card/action_card_005.png', effect:(p,s)=>{ if(s) p.score+=2; else return 'BACK'; }},
+  {name:"화난 고블린", count:2, req:'sum25', win:'+2점', lose:'-2점', img:'images/card/action_card_006.png', effect:(p,s)=>{ if(s) p.score+=2; else p.score-=2; }},
+  {name:"해골 병사", count:2, req:'sum25', win:'+2점', lose:'-4점', img:'images/card/action_card_007.png', effect:(p,s)=>{ if(s) p.score+=2; else p.score-=4; }},
+  {name:"킹 코브라", count:1, req:'sum7', win:'획득', lose:'시작점', img:'images/card/action_card_008.png', effect:(p,s)=>{ if(s) return 'GET_COBRA'; else return 'START'; }}
 ];
 
 // [Page 14-16] 찬스 카드 (리롤 불가)

@@ -125,7 +125,15 @@ export function resolveCardRoll(card, type){
   const roll = [rand(6)+1, rand(6)+1, rand(6)+1, rand(6)+1, rand(6)+1];
   const success = checkMatch(card.req, roll);
   
-  _('cardResult').innerHTML = `[${roll.join(',')}]<br>▼<br><b style="color:${success?'#4f4':'#f44'}">${success?'성공':'실패'}</b>`;
+  // [수정] 결과 주사위 시각화 (HTML 생성)
+  // flex: none과 min-width를 추가하여 크기가 30px로 고정되도록 설정
+  let diceHTML = '<div style="display:flex; gap:5px; justify-content:center; margin:10px 0;">';
+  roll.forEach(val => {
+      diceHTML += `<div class="die" style="width:30px; height:30px; min-width:30px; font-size:16px; line-height:30px; flex:none;">${val}</div>`;
+  });
+  diceHTML += '</div>';
+
+  _('cardResult').innerHTML = `${diceHTML}<div style="margin-top:5px;">▼<br><b style="font-size:16px; color:${success?'#51cf66':'#ff6b6b'}">${success?'성공!':'실패...'}</b></div>`;
   
   const p = G.players[G.active];
   const acts = _('cardActions');
@@ -166,7 +174,7 @@ export function resolveCardRoll(card, type){
   };
   acts.appendChild(btn);
   
-  // [수정] AI 플레이어면 자동 확인
+  // AI 플레이어 자동 확인
   if(p.isAI) setTimeout(()=>btn.click(), 1500);
 }
 
