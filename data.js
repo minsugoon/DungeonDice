@@ -42,23 +42,25 @@ export const DECK_ACTION_DEF = [
 ];
 
 // [Page 14-16] 찬스 카드 (리롤 불가)
+// 수정: 텍스트 제거 및 이미지 매핑 추가
 export const DECK_CHANCE_DEF = [
-  {name:"안전한 길", count:6, req:'sum15_18', win:'+0점', lose:'후퇴', effect:(p,s)=>{ if(s) {/*0점*/} else return 'BACK'; }},
-  {name:"강력한 한 방", count:4, req:'sum20', win:'+1점', lose:'-1점', effect:(p,s)=>{ if(s) p.score++; else p.score--; }},
-  {name:"바늘 구멍", count:2, req:'sum8', win:'+1점', lose:'-2점', effect:(p,s)=>{ if(s) p.score++; else p.score-=2; }},
-  {name:"짝수의 축복", count:2, req:'allEven', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }},
-  {name:"홀수의 축복", count:2, req:'allOdd', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }},
-  {name:"망가진 덫", count:2, req:'all4Up', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }},
-  {name:"착한 고블린", count:2, req:'all3Down', win:'+2점', lose:'시작점', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }}
+  {name:"안전한 길", count:6, req:'sum15_18', win:'+0점', lose:'후퇴', img:'images/card/chance_card_001.png', effect:(p,s)=>{ if(s) {/*0점*/} else return 'BACK'; }},
+  {name:"강력한 한 방", count:4, req:'sum20', win:'+1점', lose:'-1점', img:'images/card/chance_card_002.png', effect:(p,s)=>{ if(s) p.score++; else p.score--; }},
+  {name:"바늘 구멍", count:2, req:'sum8', win:'+1점', lose:'-2점', img:'images/card/chance_card_003.png', effect:(p,s)=>{ if(s) p.score++; else p.score-=2; }},
+  {name:"짝수의 축복", count:2, req:'allEven', win:'+2점', lose:'시작점', img:'images/card/chance_card_004.png', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }},
+  {name:"홀수의 축복", count:2, req:'allOdd', win:'+2점', lose:'시작점', img:'images/card/chance_card_005.png', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }},
+  {name:"망가진 덫", count:2, req:'all4Up', win:'+2점', lose:'시작점', img:'images/card/chance_card_006.png', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }},
+  {name:"착한 고블린", count:2, req:'all3Down', win:'+2점', lose:'시작점', img:'images/card/chance_card_007.png', effect:(p,s)=>{ if(s) p.score+=2; else return 'START'; }}
 ];
 
 // [Page 11-13] 아이템 카드 (획득 조건 존재)
+// 수정: 텍스트 제거 및 이미지 매핑 추가
 export const DECK_ITEM_DEF = [
-  {name:"시간의 모래시계", count:2, req:'allEven', desc:"다음 턴 굴림 +1회", id:"reroll_plus"},
-  {name:"요정의 가루", count:2, req:'allOdd', desc:"주사위 1개 재굴림", id:"reroll_one"},
-  {name:"예언자의 수정구", count:2, req:'all4Up', desc:"시작 시 3개 고정", id:"fix_three"},
-  {name:"트릭스터의 장갑", count:2, req:'all2Down', desc:"주사위 1개 눈 변경", id:"change_one"},
-  {name:"신비한 해독제", count:2, req:'fourKind', desc:"중독 즉시 치료", id:"antidote"}
+  {name:"시간의 모래시계", count:2, req:'allEven', desc:"다음 턴 굴림 +1회", id:"reroll_plus", img:'images/card/item_card_001.png'},
+  {name:"요정의 가루", count:2, req:'allOdd', desc:"주사위 1개 재굴림", id:"reroll_one", img:'images/card/item_card_002.png'},
+  {name:"예언자의 수정구", count:2, req:'all4Up', desc:"시작 시 3개 고정", id:"fix_three", img:'images/card/item_card_003.png'},
+  {name:"트릭스터의 장갑", count:2, req:'all2Down', desc:"주사위 1개 눈 변경", id:"change_one", img:'images/card/item_card_004.png'},
+  {name:"신비한 해독제", count:2, req:'fourKind', desc:"중독 즉시 치료", id:"antidote", img:'images/card/item_card_005.png'}
 ];
 
 // BGM 목록
